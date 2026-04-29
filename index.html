@@ -178,6 +178,64 @@ body {
 }
 .exp-btn:hover { background:var(--c-muted-h); color:#fff; border-color:#3a4a80; }
 
+/* ── 모바일 반응형 ── */
+@media (max-width:600px) {
+  body { flex-direction:column; }
+
+  #viewport {
+    flex:none;
+    height:42vh;
+    min-height:200px;
+  }
+
+  #sidebar {
+    width:100%;
+    flex:1;
+    border-left:none;
+    border-top:1px solid #181830;
+    overflow:hidden;
+  }
+
+  /* 재생바 */
+  #playbar {
+    height:40px;
+    padding:0 8px;
+    gap:4px;
+  }
+  #status-lbl { display:none; }
+  #time-lbl { font-size:11px; min-width:70px; }
+  .pb-btn { padding:5px 9px; font-size:11px; }
+
+  /* 탭 버튼 터치 영역 확보 */
+  .tab-btn { padding:12px 4px; font-size:12px; }
+
+  /* 포즈 카드 */
+  .pose-card { padding:8px 12px; }
+  .pose-id { font-size:12px; }
+  .pose-vals { font-size:11px; }
+
+  /* 타임라인 행 */
+  .tl-row {
+    grid-template-columns: 16px 1fr 58px 26px 26px 26px;
+    padding:6px 6px;
+  }
+  .tl-pose-sel { font-size:12px; padding:4px 4px; }
+  .tl-dur-inp  { font-size:12px; padding:4px 4px; }
+  .tl-btn { font-size:12px; padding:4px 6px; }
+
+  /* AI 생성 영역 */
+  #gen-duration { width:64px; }
+
+  /* 적용 버튼 */
+  .apply-btn { padding:11px; font-size:13px; }
+
+  /* 내보내기 버튼 */
+  .exp-btn { padding:8px 10px; font-size:12px; }
+
+  /* HUD 축소 */
+  .hud-chip { font-size:10px; padding:4px 8px; }
+}
+
 /* ── 온보딩 가이드 ── */
 #guide-overlay {
   position:fixed; inset:0; z-index:9999;
