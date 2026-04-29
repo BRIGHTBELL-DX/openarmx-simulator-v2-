@@ -1,0 +1,5 @@
+simulation_data.json
+__pycache__/
+*.pyc
+.claude/
+_poses_generated.txt
