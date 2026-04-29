@@ -177,6 +177,49 @@ body {
 }
 .exp-btn:hover { background:var(--c-muted-h); color:#fff; border-color:#3a4a80; }
 
+/* ── 온보딩 가이드 ── */
+#guide-overlay {
+  position:fixed; inset:0; z-index:9999;
+  display:none; pointer-events:all;
+}
+#guide-overlay.active { display:block; }
+#guide-highlight {
+  position:absolute; border:2px solid #4a90e2; border-radius:8px;
+  box-shadow:0 0 0 9999px rgba(0,0,10,0.8);
+  transition:all .35s cubic-bezier(.4,0,.2,1);
+  pointer-events:none; z-index:10000;
+}
+#guide-card {
+  position:absolute; width:270px;
+  background:#0e0e20; border:1px solid #2a3a6a;
+  border-radius:12px; padding:22px 20px 16px;
+  box-shadow:0 12px 40px rgba(0,0,0,.7);
+  transition:all .35s cubic-bezier(.4,0,.2,1);
+  z-index:10001;
+}
+#guide-icon { font-size:28px; margin-bottom:10px; }
+#guide-title { font-size:14px; font-weight:700; color:#cde; margin-bottom:8px; }
+#guide-desc { font-size:12px; color:#778; line-height:1.7; margin-bottom:16px; white-space:pre-line; }
+#guide-dots { display:flex; gap:5px; margin-bottom:14px; }
+.guide-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:#223; border:1px solid #334; transition:all .2s;
+}
+.guide-dot.on { background:#4a90e2; border-color:#4a90e2; width:18px; border-radius:3px; }
+#guide-actions { display:flex; justify-content:space-between; align-items:center; }
+#guide-skip {
+  background:none; border:none; color:#445; font-size:11px;
+  cursor:pointer; padding:4px 0; transition:color .15s;
+}
+#guide-skip:hover { color:#778; }
+#guide-next {
+  background:var(--c-primary); border:1px solid var(--c-primary-h);
+  color:#fff; font-size:12px; font-weight:600;
+  padding:7px 16px; border-radius:var(--btn-radius);
+  cursor:pointer; transition:background .15s;
+}
+#guide-next:hover { background:var(--c-primary-h); }
+
 /* ── 타임라인 행 에디터 ── */
 .tl-row {
   display:grid;
@@ -1258,6 +1301,140 @@ updateFK(q);
 resizeRenderer();
 animate();
 setStatus('메시 로딩 중...');
+
+// ── 온보딩 가이드 ──────────────────────────────────────────
+const GUIDE_STEPS = [
+  {
+    target: null,
+    icon: '🤖',
+    title: 'OpenArmX 시뮬레이터 오신 것을 환영합니다!',
+    desc: '처음 사용하시는 분을 위해\n간단한 사용법을 안내해 드릴게요.\n\n(언제든 건너뛰기 가능합니다)',
+  },
+  {
+    target: () => document.querySelectorAll('.tab-btn')[1],
+    icon: '📋',
+    title: '① 타임라인 입력 탭',
+    desc: '먼저 [타임라인 입력] 탭을 선택하세요.\n포즈와 재생 시간을 직접 편집하거나\n자동 생성을 활용할 수 있어요.',
+  },
+  {
+    target: () => document.getElementById('gen-btn'),
+    icon: '✨',
+    title: '② 생성하기',
+    desc: '[생성하기] 버튼을 누르면\n원하는 길이의 댄스 시퀀스가\n자동으로 만들어집니다.',
+  },
+  {
+    target: () => document.querySelector('.apply-btn[onclick*="applyTimeline"]'),
+    icon: '▶',
+    title: '③ 적용 & 재생',
+    desc: '[✓ 적용 & 재생] 버튼을 누르면\n시퀀스가 3D 뷰어에서 바로 재생됩니다.',
+  },
+  {
+    target: () => document.querySelectorAll('.tab-btn')[2],
+    icon: '📂',
+    title: '④ 재생 목록',
+    desc: '[재생 목록] 탭에서 저장된 시퀀스를\n확인하고 YAML 파일로 내보낼 수 있어요.\n\n이제 직접 사용해 보세요! 🎉',
+  },
+];
+
+let guideStep = 0;
+
+function _guidePos(el, card) {
+  if (!el) {
+    card.style.top = '50%';
+    card.style.left = '50%';
+    card.style.transform = 'translate(-50%,-50%)';
+    return;
+  }
+  card.style.transform = '';
+  const r = el.getBoundingClientRect();
+  const cw = 270, ch = card.offsetHeight || 180, pad = 12;
+  let top = r.bottom + pad;
+  let left = r.left;
+  if (top + ch > window.innerHeight - pad) top = r.top - ch - pad;
+  if (left + cw > window.innerWidth - pad) left = window.innerWidth - cw - pad;
+  if (left < pad) left = pad;
+  card.style.top  = top  + 'px';
+  card.style.left = left + 'px';
+}
+
+function _guideHighlight(el, hl) {
+  if (!el) { hl.style.display = 'none'; return; }
+  hl.style.display = 'block';
+  const r = el.getBoundingClientRect();
+  const pad = 6;
+  hl.style.top    = (r.top  - pad) + 'px';
+  hl.style.left   = (r.left - pad) + 'px';
+  hl.style.width  = (r.width  + pad * 2) + 'px';
+  hl.style.height = (r.height + pad * 2) + 'px';
+}
+
+function _renderGuideStep(step) {
+  const s = GUIDE_STEPS[step];
+  const el = s.target ? s.target() : null;
+  const overlay = document.getElementById('guide-overlay');
+  const hl   = document.getElementById('guide-highlight');
+  const card = document.getElementById('guide-card');
+
+  document.getElementById('guide-icon').textContent  = s.icon;
+  document.getElementById('guide-title').textContent = s.title;
+  document.getElementById('guide-desc').textContent  = s.desc;
+
+  const dots = document.getElementById('guide-dots');
+  dots.innerHTML = '';
+  GUIDE_STEPS.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 'guide-dot' + (i === step ? ' on' : '');
+    dots.appendChild(d);
+  });
+
+  const isLast = step === GUIDE_STEPS.length - 1;
+  document.getElementById('guide-next').textContent = isLast ? '완료 ✓' : '다음 →';
+
+  requestAnimationFrame(() => {
+    _guideHighlight(el, hl);
+    _guidePos(el, card);
+  });
+
+  if (step === 1) switchTab('timeline');
+  if (step === 4) switchTab('playlist');
+}
+
+function showGuide() {
+  guideStep = 0;
+  document.getElementById('guide-overlay').classList.add('active');
+  _renderGuideStep(0);
+}
+
+window.nextGuideStep = function() {
+  guideStep++;
+  if (guideStep >= GUIDE_STEPS.length) { closeGuide(); return; }
+  _renderGuideStep(guideStep);
+};
+
+window.closeGuide = function() {
+  document.getElementById('guide-overlay').classList.remove('active');
+  localStorage.setItem('oax_guide_shown', '1');
+};
+
+// 첫 방문 시 자동 실행
+if (!localStorage.getItem('oax_guide_shown')) {
+  setTimeout(showGuide, 800);
+}
 </script>
+
+<!-- 온보딩 가이드 오버레이 -->
+<div id="guide-overlay">
+  <div id="guide-highlight"></div>
+  <div id="guide-card">
+    <div id="guide-dots"></div>
+    <div id="guide-icon"></div>
+    <div id="guide-title"></div>
+    <div id="guide-desc"></div>
+    <div id="guide-actions">
+      <button id="guide-skip" onclick="closeGuide()">건너뛰기</button>
+      <button id="guide-next" onclick="nextGuideStep()">다음 →</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
