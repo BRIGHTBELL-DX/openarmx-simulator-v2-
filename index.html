@@ -240,9 +240,6 @@ body {
 #guide-overlay {
   position:fixed; inset:0; z-index:9999;
   display:none; pointer-events:all;
-  background: rgba(0,0,12,0.72);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
 }
 #guide-overlay.active { display:block; }
 #guide-highlight {
@@ -1450,6 +1447,9 @@ function _renderGuideStep(step) {
   const overlay = document.getElementById('guide-overlay');
   const hl   = document.getElementById('guide-highlight');
   const card = document.getElementById('guide-card');
+
+  // 타깃 없으면 오버레이 자체가 딤, 있으면 highlight box-shadow가 딤(타깃은 실제로 보임)
+  overlay.style.background = el ? 'transparent' : 'rgba(0,0,12,0.82)';
 
   document.getElementById('guide-icon').textContent  = s.icon;
   document.getElementById('guide-title').textContent = s.title;
