@@ -129,6 +129,13 @@
         <input type="file" id="music-file-inp" accept="audio/*"
           style="flex:1;font-size:11px;color:#8af;background:#0a0a1e;border:1px solid #222240;border-radius:3px;padding:3px 5px;cursor:pointer;"
           onchange="handleMusicFile(this)"/>
+        <!-- BPM 입력 : 포즈 타이밍을 비트에 맞춤 -->
+        <div style="display:flex;gap:6px;align-items:center;width:100%;margin-top:2px;">
+          <label style="font-size:11px;color:#99b;white-space:nowrap;">BPM</label>
+          <input id="music-bpm" type="number" min="60" max="220" value="120"
+            style="width:58px;background:#0d1a2a;color:#cde;border:1px solid #223;border-radius:4px;padding:3px 6px;font-size:12px;text-align:center;"/>
+          <span style="font-size:10px;color:#556;">포즈 1개 = 1비트에 정렬</span>
+        </div>
         <button class="apply-btn" id="gen-btn-music" onclick="generateDance()" style="margin:0;width:100%;display:none;">✦ 생성하기</button>
       </div>
       <!-- 필수 포즈 설정 -->

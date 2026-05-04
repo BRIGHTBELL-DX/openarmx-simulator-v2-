@@ -1203,24 +1203,51 @@ function buildDanceSequence(N) {
 window.generateDance = function() {
   const statusEl = document.getElementById('gen-status');
   let duration;
+  let bpm = 0;  // 0 = time mode (no BPM snap)
+
   if (tlMode === 'music') {
     if (!musicDuration) { statusEl.textContent = '⚠ 음악 파일을 먼저 선택하세요.'; return; }
     duration = musicDuration;
+    bpm = Math.max(60, Math.min(220, parseFloat(document.getElementById('music-bpm')?.value) || 120));
   } else {
     duration = parseFloat(document.getElementById('gen-duration').value);
     if (!duration || duration < 5) { statusEl.textContent = '⚠ 5초 이상의 시간을 입력하세요.'; return; }
   }
 
-  const timeline = buildDanceSequence(duration);
+  // ── 구(phrase)가 소비할 시간을 미리 계산하여 일반 포즈 버짓 확보 ──
+  // → buildDanceSequence에 구 시간을 제외한 순수 포즈 버짓만 전달
+  const phraseTotalDur = reqPhrases.reduce((s, phId) => {
+    const ph = PHRASE_DB[phId];
+    return s + (ph ? +(ph.poses.length * ph.dur).toFixed(2) : 0);
+  }, 0);
+  // 최소 30% 또는 최소 5초는 일반 포즈에 배정
+  const regularBudget = Math.max(duration * 0.3, 5, +(duration - phraseTotalDur).toFixed(1));
+
+  const timeline = buildDanceSequence(regularBudget);
   // JSON → 행 에디터로 변환
   tlRows = [];
 
-  // ── Step 1: 기본 타임라인 → tlRows (time 기반 duration 계산)
+  // ── Step 1: 기본 타임라인 → tlRows ──
+  // 음악 모드: BPM 기반 1비트 단위로 포즈 간격 정렬
+  // 시간 모드: buildDanceSequence 내부 간격 그대로 사용 (0.4~0.8s)
+  const beatDur = bpm > 0 ? +(60 / bpm).toFixed(3) : 0;
   for (let i = 0; i < timeline.length; i++) {
-    const dur = i < timeline.length - 1
-      ? +((timeline[i+1].time - timeline[i].time).toFixed(1))
-      : 0.5;
-    tlRows.push({ pose_id: timeline[i].pose_id, duration: Math.max(0.1, Math.min(0.8, dur)) });
+    let dur;
+    if (beatDur > 0) {
+      // 음악 모드: 포즈 1개 = 1비트 (기본), 섹션별 가중치 적용
+      const rawDur = i < timeline.length - 1
+        ? (timeline[i+1].time - timeline[i].time)
+        : beatDur;
+      // 원래 간격을 비트 배수로 반올림 (0.5, 1, 2비트 중 선택)
+      const beats = Math.max(1, Math.round(rawDur / beatDur));
+      dur = +(beats * beatDur).toFixed(2);
+    } else {
+      dur = i < timeline.length - 1
+        ? +((timeline[i+1].time - timeline[i].time).toFixed(2))
+        : 0.5;
+    }
+    // 최소 0.3s 보장 (0.1s는 너무 빠름)
+    tlRows.push({ pose_id: timeline[i].pose_id, duration: Math.max(0.3, Math.min(1.2, dur)) });
   }
 
   // ── Step 2: 필수 포즈(reqPoses) 삽입
@@ -1270,6 +1297,10 @@ window.generateDance = function() {
                       .filter(r => r._type !== 'phrase');
     if (!mid.length) return;
 
+    // 음악 모드(BPM 정렬)에서는 비트 단위를 유지하기 위해 압축 최솟값을 높게 유지
+    const MIN_DUR = beatDur > 0 ? Math.max(0.3, +beatDur.toFixed(2)) : 0.3;
+    const MAX_DUR = 1.2;
+
     let surplus = +(tlRows.reduce((s, r) => s + r.duration, 0) - duration).toFixed(2);
 
     for (let pass = 0; pass < 3 && Math.abs(surplus) > 0.05; pass++) {
@@ -1277,10 +1308,10 @@ window.generateDance = function() {
         for (let i = 0; i < mid.length && surplus > 0.01; i++) {
           const cut = Math.min(
             +((surplus / (mid.length - i)).toFixed(2)),
-            +(mid[i].duration - 0.1).toFixed(2)
+            +(mid[i].duration - MIN_DUR).toFixed(2)
           );
           if (cut > 0.01) {
-            mid[i].duration = Math.max(0.1, +(mid[i].duration - cut).toFixed(1));
+            mid[i].duration = Math.max(MIN_DUR, +(mid[i].duration - cut).toFixed(2));
             surplus = +(surplus - cut).toFixed(2);
           }
         }
@@ -1288,10 +1319,10 @@ window.generateDance = function() {
         for (let i = 0; i < mid.length && surplus < -0.01; i++) {
           const add = Math.min(
             +((-surplus) / (mid.length - i)).toFixed(2),
-            +(0.8 - mid[i].duration).toFixed(2)
+            +(MAX_DUR - mid[i].duration).toFixed(2)
           );
           if (add > 0.01) {
-            mid[i].duration = Math.min(0.8, +(mid[i].duration + add).toFixed(1));
+            mid[i].duration = Math.min(MAX_DUR, +(mid[i].duration + add).toFixed(2));
             surplus = +(surplus + add).toFixed(2);
           }
         }
@@ -1303,7 +1334,11 @@ window.generateDance = function() {
   const nNote      = nIds.length       ? ` + 생성 포즈 ${nIds.length}종`      : '';
   const reqNote    = reqPoses.length   ? ` · 필수 포즈 ${reqPoses.length}개`   : '';
   const phraseNote = reqPhrases.length ? ` · 필수 동작 ${reqPhrases.length}개` : '';
-  statusEl.textContent = `✓ ${tlRows.length}개 블록 생성 완료${nNote}${reqNote}${phraseNote}. 수정 후 적용하세요.`;
+  const bpmNote    = beatDur > 0       ? ` · BPM ${bpm} (${beatDur.toFixed(2)}s/비트)` : '';
+  // 실제 일반 포즈 최소 duration 표시
+  const regularRows = tlRows.filter(r => r._type !== 'phrase');
+  const minDur = regularRows.length ? Math.min(...regularRows.map(r => r.duration)).toFixed(2) : '-';
+  statusEl.textContent = `✓ ${tlRows.length}개 블록 생성 완료${nNote}${reqNote}${phraseNote}${bpmNote}. 수정 후 적용하세요.`;
   _setApplyBtnActive(true);
 };
 
