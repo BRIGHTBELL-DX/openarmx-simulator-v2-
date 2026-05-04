@@ -272,6 +272,51 @@ body {
 }
 #bg-palette-label { font-size:9px; color:#556; letter-spacing:1px; text-align:right; }
 
+/* ── 스킨 컬러 선택기 ── */
+#skin-picker-wrap {
+  position:absolute; top:56px; right:12px;
+  display:flex; flex-direction:column; align-items:flex-end; gap:6px;
+  z-index:500; pointer-events:all;
+}
+#skin-picker-toggle {
+  width:30px; height:30px; border-radius:50%;
+  border:2px solid rgba(255,255,255,0.25);
+  cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.5);
+  transition:transform .15s, border-color .15s;
+  background:linear-gradient(135deg,#1a4a9a 50%,#9a2a1a 50%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; line-height:1; user-select:none;
+}
+#skin-picker-toggle:hover { transform:scale(1.1); border-color:rgba(255,255,255,0.5); }
+#skin-palette {
+  display:none; flex-direction:column; gap:7px; align-items:flex-end;
+  background:rgba(10,10,25,0.92); border:1px solid #2a3060;
+  border-radius:10px; padding:10px 12px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.6);
+  min-width:160px;
+}
+#skin-palette.open { display:flex; }
+#skin-palette-label { font-size:9px; color:#556; letter-spacing:1px; text-align:right; margin-bottom:1px; }
+.skin-row {
+  display:flex; align-items:center; justify-content:flex-end; gap:5px; width:100%;
+}
+.skin-row-lbl {
+  font-size:9px; color:#668; letter-spacing:.5px; min-width:40px; text-align:right; flex-shrink:0;
+}
+.skin-swatch {
+  width:20px; height:20px; border-radius:50%; cursor:pointer;
+  border:2px solid transparent; transition:transform .12s, border-color .12s;
+  box-shadow:0 1px 4px rgba(0,0,0,0.5); flex-shrink:0;
+}
+.skin-swatch:hover  { transform:scale(1.2); }
+.skin-swatch.active { border-color:#4a90e2; transform:scale(1.1); }
+.skin-custom-inp {
+  width:20px; height:20px; border-radius:50%; cursor:pointer;
+  border:2px solid #334; padding:0; overflow:hidden;
+  background:none; outline:none; flex-shrink:0;
+}
+.skin-divider { width:100%; height:1px; background:#1e2040; margin:1px 0; }
+
 /* ── 온보딩 가이드 ── */
 #guide-overlay {
   position:fixed; inset:0; z-index:9999;
@@ -487,6 +532,55 @@ body {
         <div class="bg-swatch"        data-bg="lgray"  style="background:#b0b8c8;" title="밝은 회색"      onclick="setBgPreset('lgray')"></div>
         <div class="bg-swatch"        data-bg="white"  style="background:#f0f0f5;" title="흰색"            onclick="setBgPreset('white')"></div>
         <input type="color" id="bg-custom-inp" title="직접 선택" value="#0a0a18" oninput="setBgCustom(this.value)">
+      </div>
+    </div>
+  </div>
+
+  <!-- 스킨 컬러 선택기 -->
+  <div id="skin-picker-wrap">
+    <div id="skin-picker-toggle" title="로봇 스킨 색상 변경" onclick="toggleSkinPalette()">🎨</div>
+    <div id="skin-palette">
+      <div id="skin-palette-label">스킨 색상</div>
+
+      <!-- 프리셋 행 -->
+      <div class="skin-row">
+        <span class="skin-row-lbl">프리셋</span>
+        <div class="skin-swatch" style="background:linear-gradient(135deg,#1a4a9a 50%,#9a2a1a 50%)" title="기본 (청/적)" onclick="setSkinPreset('default')"></div>
+        <div class="skin-swatch" style="background:linear-gradient(135deg,#d0d0d0 50%,#d0d0d0 50%)" title="흰색 통일"   onclick="setSkinPreset('white')"></div>
+        <div class="skin-swatch" style="background:linear-gradient(135deg,#1a1a1a 50%,#1a1a1a 50%)" title="검정 통일"   onclick="setSkinPreset('black')"></div>
+        <div class="skin-swatch" style="background:linear-gradient(135deg,#1a5a2a 50%,#5a2a1a 50%)" title="녹/갈색"     onclick="setSkinPreset('green')"></div>
+        <div class="skin-swatch" style="background:linear-gradient(135deg,#888888 50%,#888888 50%)" title="메탈 실버"   onclick="setSkinPreset('silver')"></div>
+      </div>
+
+      <div class="skin-divider"></div>
+
+      <!-- 왼팔 -->
+      <div class="skin-row">
+        <span class="skin-row-lbl">왼팔</span>
+        <input type="color" class="skin-custom-inp" id="skin-left-inp"  title="왼팔 색상" value="#1a4a9a" oninput="setSkinPart('left', this.value)">
+      </div>
+      <!-- 오른팔 -->
+      <div class="skin-row">
+        <span class="skin-row-lbl">오른팔</span>
+        <input type="color" class="skin-custom-inp" id="skin-right-inp" title="오른팔 색상" value="#9a2a1a" oninput="setSkinPart('right', this.value)">
+      </div>
+      <!-- 몸통 -->
+      <div class="skin-row">
+        <span class="skin-row-lbl">몸통</span>
+        <input type="color" class="skin-custom-inp" id="skin-body-inp"  title="몸통 색상" value="#334466" oninput="setSkinPart('body', this.value)">
+      </div>
+      <!-- 손/그리퍼 -->
+      <div class="skin-row">
+        <span class="skin-row-lbl">손/그리퍼</span>
+        <input type="color" class="skin-custom-inp" id="skin-hand-inp"  title="손 색상" value="#556677" oninput="setSkinPart('hand', this.value)">
+      </div>
+
+      <div class="skin-divider"></div>
+
+      <!-- 양팔 동시 적용 -->
+      <div class="skin-row">
+        <span class="skin-row-lbl" style="color:#88a">동시 적용</span>
+        <input type="color" class="skin-custom-inp" id="skin-both-inp" title="양팔 동일 색상" value="#1a4a9a" oninput="setSkinBoth(this.value)">
       </div>
     </div>
   </div>
@@ -1093,6 +1187,112 @@ window.setBgCustom = function(hex) {
   document.getElementById('bg-picker-toggle').style.background = hex;
 };
 
+// ════════════════════════════════════════════════════════════
+//  스킨 컬러 선택기
+// ════════════════════════════════════════════════════════════
+const SKIN_PRESETS = {
+  default: { left:'#1a4a9a', right:'#9a2a1a', body:'#334466', hand:'#556677', jL:'#4488ff', jR:'#ff6644' },
+  white:   { left:'#d0d0d0', right:'#d0d0d0', body:'#b0b0b0', hand:'#c0c0c0', jL:'#e0e0e0', jR:'#e0e0e0' },
+  black:   { left:'#1a1a1a', right:'#1a1a1a', body:'#222222', hand:'#111111', jL:'#3a3a3a', jR:'#3a3a3a' },
+  green:   { left:'#1a5a2a', right:'#5a2a1a', body:'#2a3a22', hand:'#3a3a2a', jL:'#44aa55', jR:'#aa6633' },
+  silver:  { left:'#6a7a8a', right:'#6a7a8a', body:'#555f6a', hand:'#4a5560', jL:'#aabbcc', jR:'#aabbcc' },
+};
+
+// 씬 내 모든 Mesh 색상 재적용 (getMat 기준으로 재매핑)
+function _recolorScene() {
+  sceneRoot.traverse(obj => {
+    if (!(obj instanceof THREE.Mesh) || !obj.material) return;
+    const name = obj.parent && obj.parent.name ? obj.parent.name : '';
+    let target = null;
+    if (name === 'body')                                   target = MAT.body;
+    else if (name.includes('hand') || name.includes('_f')) target = MAT.hand;
+    else if (name.startsWith('L'))                         target = MAT.left;
+    else if (name.startsWith('R'))                         target = MAT.right;
+    if (target) {
+      obj.material.color.copy(target.color);
+      obj.material.roughness  = target.roughness;
+      obj.material.metalness  = target.metalness;
+      obj.material.needsUpdate = true;
+    }
+  });
+  // 관절 마커
+  sceneRoot.traverse(obj => {
+    if (!(obj instanceof THREE.Mesh) || !obj.material) return;
+    const name = obj.parent && obj.parent.name ? obj.parent.name : '';
+    const isJoint = obj.geometry && obj.geometry.type === 'SphereGeometry' &&
+                    obj.geometry.parameters && obj.geometry.parameters.radius <= 0.01;
+    if (!isJoint) return;
+    const src = name.startsWith('L') ? MAT.jL : name.startsWith('R') ? MAT.jR : null;
+    if (src) {
+      obj.material.color.copy(src.color);
+      obj.material.emissive.copy(src.emissive);
+      obj.material.needsUpdate = true;
+    }
+  });
+}
+
+// 파트별 MAT 업데이트 + 저장
+function _applySkinPart(part, hex) {
+  const c = new THREE.Color(hex);
+  if (part === 'left')  { MAT.left.color.set(c);  MAT.jL.color.set(hex); MAT.jL.emissive.set(new THREE.Color(hex).multiplyScalar(0.3)); }
+  if (part === 'right') { MAT.right.color.set(c); MAT.jR.color.set(hex); MAT.jR.emissive.set(new THREE.Color(hex).multiplyScalar(0.3)); }
+  if (part === 'body')  { MAT.body.color.set(c); }
+  if (part === 'hand')  { MAT.hand.color.set(c); }
+  _recolorScene();
+  // localStorage 저장
+  const saved = _loadSkinStorage();
+  saved[part] = hex;
+  localStorage.setItem('oax_skin', JSON.stringify(saved));
+}
+
+function _loadSkinStorage() {
+  try { return JSON.parse(localStorage.getItem('oax_skin') || '{}'); } catch(e) { return {}; }
+}
+
+window.toggleSkinPalette = function() {
+  document.getElementById('skin-palette').classList.toggle('open');
+};
+
+window.setSkinPreset = function(key) {
+  const p = SKIN_PRESETS[key];
+  if (!p) return;
+  ['left','right','body','hand'].forEach(part => _applySkinPart(part, p[part]));
+  // 입력창 색상 동기화
+  const ids = { left:'skin-left-inp', right:'skin-right-inp', body:'skin-body-inp', hand:'skin-hand-inp' };
+  Object.entries(ids).forEach(([k,id]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = p[k];
+  });
+  localStorage.setItem('oax_skin', JSON.stringify(p));
+};
+
+window.setSkinPart = function(part, hex) {
+  _applySkinPart(part, hex);
+};
+
+window.setSkinBoth = function(hex) {
+  _applySkinPart('left', hex);
+  _applySkinPart('right', hex);
+  const li = document.getElementById('skin-left-inp');
+  const ri = document.getElementById('skin-right-inp');
+  if (li) li.value = hex;
+  if (ri) ri.value = hex;
+};
+
+// 저장된 스킨 복원 (STL 로드 후 호출)
+function _restoreSkinStorage() {
+  const saved = _loadSkinStorage();
+  if (!Object.keys(saved).length) return;
+  ['left','right','body','hand'].forEach(part => {
+    if (saved[part]) {
+      _applySkinPart(part, saved[part]);
+      const idMap = { left:'skin-left-inp', right:'skin-right-inp', body:'skin-body-inp', hand:'skin-hand-inp' };
+      const el = document.getElementById(idMap[part]);
+      if (el) el.value = saved[part];
+    }
+  });
+}
+
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 30);
 camera.position.set(1.8, 1.2, 2.2);
 camera.lookAt(0, 0.5, 0);
@@ -1185,7 +1385,8 @@ CHAIN.forEach(lk => {
     mesh.position.set(...lk.mesh.offset);
     groups[lk.name].add(mesh);
     loaded++;
-    setStatus(loaded === total ? '준비 완료 ✓' : `메시 로딩 ${loaded}/${total}`);
+    if (loaded === total) { setStatus('준비 완료 ✓'); _restoreSkinStorage(); }
+    else setStatus(`메시 로딩 ${loaded}/${total}`);
   }, undefined, () => { loaded++; });
 });
 
@@ -2551,6 +2752,14 @@ updateFK(q);
 resizeRenderer();
 animate();
 setStatus('메시 로딩 중...');
+
+// 팔레트 외부 클릭 닫기
+document.addEventListener('click', function(e) {
+  const bgWrap   = document.getElementById('bg-picker-wrap');
+  const skinWrap = document.getElementById('skin-picker-wrap');
+  if (bgWrap   && !bgWrap.contains(e.target))   document.getElementById('bg-palette').classList.remove('open');
+  if (skinWrap && !skinWrap.contains(e.target))  document.getElementById('skin-palette').classList.remove('open');
+});
 
 // ── 온보딩 가이드 ──────────────────────────────────────────
 const GUIDE_STEPS = [
