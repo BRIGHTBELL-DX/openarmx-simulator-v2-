@@ -216,12 +216,13 @@ body {
 
   /* 타임라인 행 */
   .tl-row {
-    grid-template-columns: 16px 1fr 58px 26px 26px 26px;
-    padding:6px 6px;
+    grid-template-columns: 13px 1fr 46px 38px 22px 22px 22px;
+    padding:5px 5px;
   }
-  .tl-pose-sel { font-size:12px; padding:4px 4px; }
-  .tl-dur-inp  { font-size:12px; padding:4px 4px; }
-  .tl-btn { font-size:12px; padding:4px 6px; }
+  .tl-pose-sel { font-size:12px; padding:4px 3px; }
+  .tl-dur-inp  { font-size:12px; padding:4px 3px; }
+  .tl-cum      { font-size:11px; }
+  .tl-btn      { font-size:12px; padding:4px 5px; }
 
   /* AI 생성 영역 */
   #gen-duration { width:64px; }
@@ -419,30 +420,35 @@ body {
 /* ── 타임라인 행 에디터 ── */
 .tl-row {
   display:grid;
-  grid-template-columns: 18px 1fr 64px 22px 22px 22px;
-  align-items:center; gap:4px;
-  padding:4px 6px; margin-bottom:3px;
+  grid-template-columns: 13px 1fr 48px 40px 20px 20px 20px;
+  align-items:center; gap:3px;
+  padding:3px 5px; margin-bottom:3px;
   background:#111125; border:1px solid #1c1c35;
   border-radius:5px; font-size:12px;
 }
 .tl-row:hover { border-color:#2a2a55; }
-.tl-handle { color:#334; cursor:grab; text-align:center; font-size:14px; user-select:none; }
+.tl-handle { color:#334; cursor:grab; text-align:center; font-size:13px; user-select:none; }
 .tl-pose-sel {
   background:#0a0a1e; color:#4a90e2; border:1px solid #222240;
-  border-radius:3px; padding:3px 4px; font-size:11px; font-family:monospace;
+  border-radius:3px; padding:2px 3px; font-size:11px; font-family:monospace;
   width:100%; outline:none; cursor:pointer;
 }
 .tl-pose-sel:focus { border-color:#4a90e2; }
 .tl-dur-inp {
   background:#0a0a1e; color:#cde; border:1px solid #222240;
-  border-radius:3px; padding:3px 4px; font-size:11px; text-align:center;
+  border-radius:3px; padding:2px 3px; font-size:11px; text-align:center;
   width:100%; outline:none;
 }
 .tl-dur-inp:focus { border-color:#4a90e2; }
+.tl-cum {
+  font-size:10px; color:#4a7a5a; font-family:monospace;
+  text-align:right; white-space:nowrap; padding-right:1px;
+  letter-spacing:-0.3px;
+}
 .tl-btn {
   background:var(--c-muted); border:1px solid var(--c-border);
   border-radius:var(--btn-radius); color:var(--c-text);
-  cursor:pointer; font-size:11px; padding:3px 5px;
+  cursor:pointer; font-size:10px; padding:2px 4px;
   line-height:1; font-weight:var(--btn-fw);
   transition:var(--btn-transition);
 }
@@ -1585,21 +1591,25 @@ function _removePoseOptFromSelects(id) {
 function renderTLRows() {
   const container = document.getElementById('tl-rows');
   const frag = document.createDocumentFragment();
-  const optsHtml = _getTLOptsHtml(); // 전체 옵션 한 번만 빌드
+  const optsHtml = _getTLOptsHtml();
 
+  let cumSec = 0;
   tlRows.forEach((row, i) => {
+    const startSec = cumSec;
+    cumSec = +(cumSec + row.duration).toFixed(1);
+
     const div = document.createElement('div');
     div.className = 'tl-row';
     div.innerHTML = `
       <span class="tl-handle">≡</span>
       <select class="tl-pose-sel" onchange="tlRows[${i}].pose_id=this.value;updateTLTotal()">${optsHtml}</select>
       <input class="tl-dur-inp" type="number" min="0.1" max="30" step="0.1" value="${row.duration}"
-        onchange="tlRows[${i}].duration=+parseFloat(this.value).toFixed(1);updateTLTotal()">
+        onchange="tlRows[${i}].duration=+parseFloat(this.value).toFixed(1);renderTLRows()">
+      <span class="tl-cum" title="시작 시각">${startSec.toFixed(1)}s</span>
       <button class="tl-btn" onclick="moveTLRow(${i},-1)" title="위로">↑</button>
       <button class="tl-btn" onclick="moveTLRow(${i},1)"  title="아래로">↓</button>
       <button class="tl-btn" style="color:#a44;" onclick="delTLRow(${i})" title="삭제">✕</button>
     `;
-    // selected 설정은 JS로 (template 내 문자열 비교 불필요)
     const sel = div.querySelector('.tl-pose-sel');
     if (sel && POSE_IDS.includes(row.pose_id)) sel.value = row.pose_id;
     frag.appendChild(div);
