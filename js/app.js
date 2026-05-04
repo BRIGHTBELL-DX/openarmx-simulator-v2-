@@ -2410,9 +2410,12 @@ window.previewPhrase = function(phId, mode) {
   _kfToTLRowIdx = kfs.map((_, i) => i);
   scrubber.max  = totalDur;
   isLooping     = false;
-  _syncPlayBtns();
   stopAnim();
-  playAnim();
+  // playAnim() 가드(selectedTID 체크)를 우회하여 직접 재생 시작
+  pauseOffset   = 0;
+  startWall     = performance.now();
+  isPlaying     = true;
+  _syncPlayBtns();
   setStatus(`🎬 ${ph.name} 미리보기 (${validPoses.length}포즈 · ${totalDur}s)`);
 };
 
