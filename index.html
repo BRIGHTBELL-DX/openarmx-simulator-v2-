@@ -88,15 +88,15 @@
 <!-- ══ 사이드바 ══ -->
 <div id="sidebar">
   <div class="tabs">
-    <div class="tab-btn active" onclick="switchTab('poses')">기존 포즈</div>
-    <div class="tab-btn"       onclick="switchTab('custom')">생성 포즈</div>
-    <div class="tab-btn"       onclick="switchTab('timeline')">타임라인</div>
-    <div class="tab-btn"       onclick="switchTab('modules')">모듈 조합</div>
-    <div class="tab-btn"       onclick="switchTab('phrases')">동작 선언</div>
+    <div class="tab-btn active" onclick="switchTab('timeline')">타임라인</div>
+    <div class="tab-btn"        onclick="switchTab('phrases')">동작 선언</div>
+    <div class="tab-btn"        onclick="switchTab('poses')">기존 포즈</div>
+    <div class="tab-btn"        onclick="switchTab('modules')">모듈 조합</div>
+    <div class="tab-btn"        onclick="switchTab('custom')">생성 포즈</div>
   </div>
 
   <!-- ── 기존 포즈 탭 ── -->
-  <div id="tab-poses" class="tab-pane active">
+  <div id="tab-poses" class="tab-pane">
     <div class="scroll" id="pose-list"></div>
   </div>
 
@@ -108,7 +108,7 @@
   </div>
 
   <!-- ── 타임라인 입력 탭 ── -->
-  <div id="tab-timeline" class="tab-pane" style="flex-direction:column;overflow:hidden;">
+  <div id="tab-timeline" class="tab-pane active" style="flex-direction:column;overflow:hidden;">
     <!-- AI 생성 헤더 -->
     <div style="padding:10px 12px 8px;border-bottom:1px solid #181830;flex-shrink:0;">
       <div class="sec" style="margin:0 0 6px">AI 댄스 시퀀스 생성</div>
@@ -156,14 +156,14 @@
       <!-- 필수 동작 구 설정 -->
       <div style="border-top:1px solid #181830;padding-top:6px;margin-top:2px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <span style="font-size:10px;color:#7a5aaa;letter-spacing:1px;">🎬 필수 동작 <span style="opacity:.6;">(선택사항)</span></span>
+          <span style="font-size:10px;color:#7a5aaa;letter-spacing:1px;">필수 동작 <span style="opacity:.6;">(선택사항)</span></span>
           <div style="display:flex;gap:4px;align-items:center;">
             <select id="req-phrase-sel" style="background:#0d0420;color:#c4a0ff;border:1px solid #5a1aaa;border-radius:3px;padding:2px 4px;font-size:10px;font-family:monospace;outline:none;max-width:150px;"></select>
             <button class="exp-btn" style="padding:2px 8px;font-size:10px;color:#c4a0ff;border-color:#5a1aaa;" onclick="addReqPhrase()">+ 추가</button>
           </div>
         </div>
         <div class="req-chips-wrap" id="req-phrase-chips"></div>
-        <div style="font-size:9px;color:#4a3070;margin-top:3px;">🔒 선택한 동작은 재생 시간이 보장됩니다</div>
+        <div style="font-size:9px;color:#4a3070;margin-top:3px;">선택한 동작은 재생 시간이 보장됩니다</div>
       </div>
       <div id="gen-status" style="font-size:11px;color:#68a;min-height:14px;margin-top:4px;"></div>
     </div>

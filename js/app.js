@@ -567,7 +567,7 @@ function nearestPoseLabel(t, tl) {
     // 구 첫 번째 KF 인덱스 찾기
     const phraseKFStart = _kfToTLRowIdx.indexOf(rowIdx);
     const poseInPhrase = bestIdx - phraseKFStart;
-    return `🎬 ${row.name} (${poseInPhrase + 1}/${row.poses.length})`;
+    return `${row.name} (${poseInPhrase + 1}/${row.poses.length})`;
   }
   return tl[bestIdx].pose_id;
 }
@@ -778,9 +778,9 @@ function renderTLRows() {
       div.className = 'tl-row tl-row-phrase';
       div.innerHTML = `
         <span class="tl-handle" title="드래그로 순서 변경">⠿</span>
-        <span class="tl-phrase-name">🎬 ${row.name}</span>
+        <span class="tl-phrase-name">${row.name}</span>
         <span class="tl-phrase-meta">${row.poses.length}포즈 · ${row.duration.toFixed(1)}s</span>
-        <span class="tl-phrase-lock" title="재생 시간 보장 — 이 블록은 압축되지 않습니다">🔒</span>
+        <span class="tl-phrase-lock" title="재생 시간 보장 — 이 블록은 압축되지 않습니다"></span>
         <button class="tl-btn" style="color:#a44;" onclick="delTLRow(${i})" title="삭제">✕</button>
       `;
       div.addEventListener('click', e => {
@@ -895,9 +895,9 @@ function renderTLVisBar() {
       const showDur   = widthPct > 10;
       trackHtml += `<div class="tl-seg tl-seg-phrase" style="width:${widthPct.toFixed(3)}%;background:${bg};"
         data-idx="${i}" onclick="previewTLRow(${i})"
-        title="🎬 ${row.name}  ·  ${row.poses.length}포즈  ·  ${row.duration.toFixed(1)}s (보장)  @  ${startSec.toFixed(1)}s">
-        ${showLabel ? `<span class="tl-seg-id">🎬 ${row.name}</span>` : ''}
-        ${showDur   ? `<span class="tl-seg-dur">🔒${row.duration.toFixed(1)}s</span>` : ''}
+        title="${row.name}  ·  ${row.poses.length}포즈  ·  ${row.duration.toFixed(1)}s  @  ${startSec.toFixed(1)}s">
+        ${showLabel ? `<span class="tl-seg-id">${row.name}</span>` : ''}
+        ${showDur   ? `<span class="tl-seg-dur">${row.duration.toFixed(1)}s</span>` : ''}
       </div>`;
     } else {
       // ── 일반 포즈 세그먼트 ──
@@ -2066,7 +2066,7 @@ function renderReqPhraseChips() {
     const totalDur = ph ? +(ph.poses.length * ph.dur).toFixed(1) : '?';
     const chip = document.createElement('div');
     chip.className = 'req-chip req-chip-phrase';
-    chip.innerHTML = `🎬 ${ph ? ph.name : phId} <span style="opacity:.6;font-size:9px;">${totalDur}s</span><button class="req-chip-rm" onclick="removeReqPhrase(${i})">✕</button>`;
+    chip.innerHTML = `${ph ? ph.name : phId} <span style="opacity:.6;font-size:9px;">${totalDur}s</span><button class="req-chip-rm" onclick="removeReqPhrase(${i})">✕</button>`;
     wrap.appendChild(chip);
   });
 }
@@ -2232,7 +2232,7 @@ window.previewPose = function(id) {
 // 탭 전환
 window.switchTab = function(tab) {
   if (tab === 'playlist') tab = 'timeline';
-  const tabs = ['poses','custom','timeline','modules','phrases'];
+  const tabs = ['timeline','phrases','poses','modules','custom'];
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===tab));
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id===`tab-${tab}`));
   if (tab === 'phrases') renderPhraseList();
@@ -2416,7 +2416,7 @@ window.previewPhrase = function(phId, mode) {
   startWall     = performance.now();
   isPlaying     = true;
   _syncPlayBtns();
-  setStatus(`🎬 ${ph.name} 미리보기 (${validPoses.length}포즈 · ${totalDur}s)`);
+  setStatus(`▶ ${ph.name} 미리보기 (${validPoses.length}포즈 · ${totalDur}s)`);
 };
 
 // ── 편집 시작/취소/저장 ───────────────────────────────────────
