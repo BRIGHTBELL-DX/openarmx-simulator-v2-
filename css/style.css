@@ -627,6 +627,18 @@ body {
   color:#aac; font-family:monospace; font-size:11px; padding:2px 6px; outline:none;
 }
 .ph-pose-text-inp:focus { border-color:#4a90e2; }
+/* 포즈별 개별 시간 입력 */
+.ph-dur-inp {
+  width:50px; background:#050518; border:1px solid #181840; border-radius:2px;
+  color:#9cf; font-family:monospace; font-size:11px; padding:2px 4px;
+  text-align:center; outline:none; flex-shrink:0;
+}
+.ph-dur-inp:focus { border-color:#4a90e2; }
+.ph-dur-unit { font-size:9px; color:#3a4a66; flex-shrink:0; }
+/* 일괄 적용 행 */
+.ph-bulk-row { background:#0a0a20; border:1px solid #181840; border-radius:4px; padding:5px 8px; margin-bottom:7px; }
+.ph-bulk-row .ph-edit-lbl { color:#4a7aaa; }
+.ph-total-lbl { font-size:10px; color:#4a7aaa; margin-left:auto; white-space:nowrap; }
 .ph-edit-footer { display:flex; gap:5px; margin-top:8px; }
 /* 신규 구 폼 */
 #new-phrase-form {

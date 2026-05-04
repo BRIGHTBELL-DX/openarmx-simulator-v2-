@@ -988,14 +988,14 @@ function tlRowsToKFs() {
   const kfs = [];
   tlRows.forEach(row => {
     if (row._type === 'phrase') {
-      // 구 블록: 반올림 누적 오차 방지 → phraseStart 기준 절대 계산
-      const phraseStart = t;
+      // 구 블록: 포즈별 durs[] 우선, 없으면 row.dur 균등
+      const durList = (row.durs && row.durs.length === row.poses.length) ? row.durs : row.poses.map(() => row.dur);
+      let phraseT = t;
       row.poses.forEach((pid, j) => {
-        const kfTime = +(phraseStart + j * row.dur).toFixed(2);
-        kfs.push({ time: kfTime, pose_id: pid, transition_id: '1' });
+        kfs.push({ time: +phraseT.toFixed(3), pose_id: pid, transition_id: '1' });
+        phraseT = +(phraseT + durList[j]).toFixed(3);
       });
-      // t는 row.duration만큼 정확히 전진 (누적 오차 없음)
-      t = +(phraseStart + row.duration).toFixed(2);
+      t = +(t + row.duration).toFixed(3);
     } else {
       kfs.push({ time: +t.toFixed(2), pose_id: row.pose_id, transition_id: '1' });
       t = +(t + row.duration).toFixed(2);
@@ -1218,7 +1218,7 @@ window.generateDance = function() {
   // → buildDanceSequence에 구 시간을 제외한 순수 포즈 버짓만 전달
   const phraseTotalDur = reqPhrases.reduce((s, phId) => {
     const ph = PHRASE_DB[phId];
-    return s + (ph ? +(ph.poses.length * ph.dur).toFixed(2) : 0);
+    return s + (ph ? _phraseTotalDur(ph) : 0);
   }, 0);
   // 최소 30% 또는 최소 5초는 일반 포즈에 배정
   const regularBudget = Math.max(duration * 0.3, 5, +(duration - phraseTotalDur).toFixed(1));
@@ -1265,11 +1265,13 @@ window.generateDance = function() {
     reqPhrases.forEach((phId, i) => {
       const ph = PHRASE_DB[phId];
       if (!ph) return;
-      const totalDur = +(ph.poses.length * ph.dur).toFixed(1);
+      const totalDur = +_phraseTotalDur(ph).toFixed(1);
       const idx = Math.min(step * (i + 1) + i, tlRows.length - 3);
       tlRows.splice(idx, 0, {
         _type: 'phrase', phrase_id: phId, name: ph.name,
-        poses: ph.poses, dur: ph.dur, duration: totalDur
+        poses: ph.poses, dur: ph.dur,
+        durs: ph.durs ? [...ph.durs] : ph.poses.map(() => ph.dur),
+        duration: totalDur
       });
     });
   }
@@ -2063,7 +2065,7 @@ function renderReqPhraseChips() {
   wrap.innerHTML = '';
   reqPhrases.forEach((phId, i) => {
     const ph = PHRASE_DB[phId];
-    const totalDur = ph ? +(ph.poses.length * ph.dur).toFixed(1) : '?';
+    const totalDur = ph ? _phraseTotalDur(ph).toFixed(1) : '?';
     const chip = document.createElement('div');
     chip.className = 'req-chip req-chip-phrase';
     chip.innerHTML = `${ph ? ph.name : phId} <span style="opacity:.6;font-size:9px;">${totalDur}s</span><button class="req-chip-rm" onclick="removeReqPhrase(${i})">✕</button>`;
@@ -2245,9 +2247,51 @@ function setStatus(msg) { document.getElementById('status-lbl').textContent = ms
 //  동작 선언 탭 — 구(Phrase) 라이브러리 관리
 // ════════════════════════════════════════════════════════════
 let _editingPhraseId   = null;  // 현재 편집 중인 구 ID
-let _editingPhraseBuf  = null;  // 편집 버퍼 { name, poses[], dur }
+let _editingPhraseBuf  = null;  // 편집 버퍼 { name, poses[], durs[], dur }
 let _showNewPhraseForm = false;
-let _newPhraseBuf      = null;  // 신규 구 버퍼 { name, poses[], dur }
+let _newPhraseBuf      = null;  // 신규 구 버퍼 { name, poses[], durs[], dur }
+
+/** 구의 총 재생 시간 (durs[] 우선, 없으면 dur × 포즈 수) */
+function _phraseTotalDur(ph) {
+  if (ph.durs && ph.durs.length === ph.poses.length)
+    return +ph.durs.reduce((s, d) => s + d, 0).toFixed(2);
+  return +(ph.poses.length * ph.dur).toFixed(2);
+}
+
+/** buf의 durs 합계 표시용 문자열 */
+function _bufTotalStr(buf) {
+  return _phraseTotalDur(buf).toFixed(1) + 's';
+}
+
+/** 포즈 목록 HTML 생성 (편집 카드 공용) */
+function _poseRowsHTML(poses, durs, phId, isNew) {
+  const onChange  = isNew ? (i, f) => `on${f}(${i},this.value)` : (i, f) => `on${f}('${phId}',${i},this.value)`;
+  const onMove    = isNew ? (i, d) => `addNewPhraseRowMove(${i},${d})` : (i, d) => `movePhraseRow('${phId}',${i},${d})`;
+  const onDel     = isNew ? (i) => `removeNewPhraseRow(${i})` : (i) => `removePhraseRow('${phId}',${i})`;
+  const idPfx     = isNew ? `ph-nrow` : `ph-erow-${phId}`;
+  const inpIdPfx  = isNew ? `ph-ninp` : `ph-einp-${phId}`;
+  const durIdPfx  = isNew ? `ph-ndinp` : `ph-dinp-${phId}`;
+  const poseEvt   = isNew ? `onNewPhrasePoseChange` : `onPhrasePoseChange`;
+  const durEvt    = isNew ? `onNewPhraseDurChange`  : `onPhraseDurChange`;
+  return poses.map((pid, i) => `
+    <div class="ph-pose-edit-row" id="${idPfx}-${i}">
+      <span class="ph-pose-num">${i+1}</span>
+      <input class="ph-pose-text-inp" list="pose-datalist"
+        value="${pid}" placeholder="P-001"
+        id="${inpIdPfx}-${i}"
+        onchange="${onChange(i, poseEvt)}"/>
+      <input class="ph-dur-inp" type="number" step="0.05" min="0.05" max="5"
+        value="${(durs[i] ?? 0.5).toFixed(2)}"
+        id="${durIdPfx}-${i}"
+        onchange="${onChange(i, durEvt)}"/>
+      <span class="ph-dur-unit">s</span>
+      ${isNew ? '' : `
+      <button class="ph-btn ph-btn-move" onclick="${onMove(i,-1)}" title="위로">↑</button>
+      <button class="ph-btn ph-btn-move" onclick="${onMove(i,+1)}" title="아래로">↓</button>`}
+      <button class="ph-btn ph-btn-play" style="padding:2px 7px;font-size:9px;" onclick="previewPose('${pid}')" title="미리보기">▶</button>
+      <button class="ph-btn ph-btn-del-row" onclick="${onDel(i)}">✕</button>
+    </div>`).join('');
+}
 
 // ── 구 목록 렌더 ──────────────────────────────────────────────
 function renderPhraseList() {
@@ -2271,21 +2315,24 @@ function renderPhraseList() {
 
 // ── 뷰 카드 ──────────────────────────────────────────────────
 function _buildPhraseViewCard(phId, ph) {
-  const totalDur = +(ph.poses.length * ph.dur).toFixed(1);
+  const totalDur = _phraseTotalDur(ph);
+  const allSame  = !ph.durs || ph.durs.every(d => d === ph.durs[0]);
+  const durMeta  = allSame ? `${ph.dur}s/포즈` : '개별 시간';
   const div = document.createElement('div');
   div.className = 'ph-card';
   div.id = `ph-card-${phId}`;
 
-  // 포즈 칩 HTML
-  const chipsHTML = ph.poses.map(pid =>
-    `<span class="ph-pose-chip" onclick="previewPose('${pid}')" title="${pid} 미리보기">${pid}</span>`
+  // 포즈 칩 HTML — dur 표시 포함
+  const durs = ph.durs || ph.poses.map(() => ph.dur);
+  const chipsHTML = ph.poses.map((pid, i) =>
+    `<span class="ph-pose-chip" onclick="previewPose('${pid}')" title="${pid}  ${durs[i]}s">${pid}<span style="color:#4a6a9a;font-size:8px;margin-left:2px;">${durs[i]}s</span></span>`
   ).join('');
 
   div.innerHTML = `
     <div class="ph-card-header">
       <span class="ph-card-id">${phId}</span>
       <span class="ph-card-name">${ph.name}</span>
-      <span class="ph-card-meta">${ph.poses.length}포즈 · ${totalDur}s · ${ph.dur}s/포즈</span>
+      <span class="ph-card-meta">${ph.poses.length}포즈 · ${totalDur.toFixed(1)}s · ${durMeta}</span>
       <button class="ph-btn ph-btn-play" onclick="previewPhrase('${phId}')" title="1회 재생">▶</button>
       <button class="ph-btn ph-btn-edit" onclick="startEditPhrase('${phId}')">✎ 편집</button>
     </div>
@@ -2299,18 +2346,7 @@ function _buildPhraseEditCard(phId, buf) {
   div.className = 'ph-card ph-editing';
   div.id = `ph-card-${phId}`;
 
-  const poseRowsHTML = buf.poses.map((pid, i) => `
-    <div class="ph-pose-edit-row" id="ph-erow-${phId}-${i}">
-      <span class="ph-pose-num">${i+1}</span>
-      <input class="ph-pose-text-inp" list="pose-datalist"
-        value="${pid}" placeholder="P-001"
-        id="ph-einp-${phId}-${i}"
-        onchange="onPhrasePoseChange('${phId}',${i},this.value)"/>
-      <button class="ph-btn ph-btn-move" onclick="movePhraseRow('${phId}',${i},-1)" title="위로">↑</button>
-      <button class="ph-btn ph-btn-move" onclick="movePhraseRow('${phId}',${i},+1)" title="아래로">↓</button>
-      <button class="ph-btn ph-btn-play" style="padding:2px 7px;font-size:9px;" onclick="previewPose('${pid}')" title="미리보기">▶</button>
-      <button class="ph-btn ph-btn-del-row" onclick="removePhraseRow('${phId}',${i})">✕</button>
-    </div>`).join('');
+  const poseRowsHTML = _poseRowsHTML(buf.poses, buf.durs, phId, false);
 
   div.innerHTML = `
     <div class="ph-card-header">
@@ -2325,17 +2361,16 @@ function _buildPhraseEditCard(phId, buf) {
         <input class="ph-inp ph-inp-name" id="ph-name-inp-${phId}" value="${buf.name}"
           oninput="_editingPhraseBuf.name=this.value"/>
       </div>
-      <div class="ph-edit-row">
-        <span class="ph-edit-lbl">포즈당 시간</span>
-        <input class="ph-inp ph-inp-dur" type="number" step="0.05" min="0.1" max="5"
-          id="ph-dur-inp-${phId}" value="${buf.dur}"
-          oninput="_editingPhraseBuf.dur=parseFloat(this.value)||0.5"/>
+      <!-- 일괄 적용 -->
+      <div class="ph-edit-row ph-bulk-row">
+        <span class="ph-edit-lbl">일괄 적용</span>
+        <input class="ph-inp ph-inp-dur" type="number" step="0.05" min="0.05" max="5"
+          id="ph-bulk-inp-${phId}" value="${buf.dur}"/>
         <span style="font-size:10px;color:#445;">초</span>
-        <span style="font-size:10px;color:#4a5a7a;margin-left:8px;">
-          합계: <b id="ph-total-lbl-${phId}">${(buf.poses.length*buf.dur).toFixed(1)}s</b>
-        </span>
+        <button class="ph-btn ph-btn-edit" style="font-size:9px;padding:2px 8px;" onclick="applyBulkDur('${phId}')">모두 적용</button>
+        <span class="ph-total-lbl">합계: <b id="ph-total-lbl-${phId}">${_bufTotalStr(buf)}</b></span>
       </div>
-      <div style="font-size:10px;color:#557;margin-bottom:5px;">포즈 목록 (클릭하여 포즈 ID 수정)</div>
+      <div style="font-size:10px;color:#557;margin-bottom:4px;">포즈 목록 — 포즈 ID와 개별 시간을 수정하세요</div>
       <div class="ph-pose-list" id="ph-pose-list-${phId}">${poseRowsHTML}</div>
       <div class="ph-edit-footer">
         <button class="ph-btn ph-btn-add-row" onclick="addPhraseRow('${phId}')">+ 포즈 추가</button>
@@ -2351,15 +2386,7 @@ function _buildNewPhraseForm() {
   const wrap = document.createElement('div');
   wrap.id = 'new-phrase-form';
 
-  const poseRowsHTML = buf.poses.map((pid, i) => `
-    <div class="ph-pose-edit-row" id="ph-nrow-${i}">
-      <span class="ph-pose-num">${i+1}</span>
-      <input class="ph-pose-text-inp" list="pose-datalist"
-        value="${pid}" placeholder="P-001"
-        onchange="onNewPhrasePoseChange(${i},this.value)"/>
-      <button class="ph-btn ph-btn-play" style="padding:2px 7px;font-size:9px;" onclick="previewPose('${pid}')" title="미리보기">▶</button>
-      <button class="ph-btn ph-btn-del-row" onclick="removeNewPhraseRow(${i})">✕</button>
-    </div>`).join('');
+  const poseRowsHTML = _poseRowsHTML(buf.poses, buf.durs, null, true);
 
   wrap.innerHTML = `
     <div class="ph-form-title">✦ 신규 동작 추가</div>
@@ -2368,14 +2395,16 @@ function _buildNewPhraseForm() {
       <input class="ph-inp ph-inp-name" id="new-ph-name" value="${buf.name}"
         oninput="_newPhraseBuf.name=this.value" placeholder="동작 이름 입력"/>
     </div>
-    <div class="ph-edit-row">
-      <span class="ph-edit-lbl">포즈당 시간</span>
-      <input class="ph-inp ph-inp-dur" type="number" step="0.05" min="0.1" max="5"
-        id="new-ph-dur" value="${buf.dur}"
-        oninput="_newPhraseBuf.dur=parseFloat(this.value)||0.5"/>
+    <!-- 일괄 적용 -->
+    <div class="ph-edit-row ph-bulk-row">
+      <span class="ph-edit-lbl">일괄 적용</span>
+      <input class="ph-inp ph-inp-dur" type="number" step="0.05" min="0.05" max="5"
+        id="new-ph-bulk" value="${buf.dur}"/>
       <span style="font-size:10px;color:#445;">초</span>
+      <button class="ph-btn ph-btn-edit" style="font-size:9px;padding:2px 8px;" onclick="applyBulkDurNew()">모두 적용</button>
+      <span class="ph-total-lbl">합계: <b id="new-ph-total-lbl">${_bufTotalStr(buf)}</b></span>
     </div>
-    <div style="font-size:10px;color:#557;margin-bottom:5px;">포즈 목록</div>
+    <div style="font-size:10px;color:#557;margin-bottom:4px;">포즈 목록 — 포즈 ID와 개별 시간을 수정하세요</div>
     <div class="ph-pose-list" id="new-ph-pose-list">${poseRowsHTML}</div>
     <div class="ph-edit-footer" style="margin-top:6px;">
       <button class="ph-btn ph-btn-add-row" onclick="addNewPhraseRow()">+ 포즈 추가</button>
@@ -2397,12 +2426,14 @@ window.previewPhrase = function(phId, mode) {
   const validPoses = ph.poses.filter(pid => POSE_DB[pid]);
   if (!validPoses.length) { setStatus('⚠ 유효한 포즈가 없습니다.'); return; }
 
-  const kfs = validPoses.map((pid, i) => ({
-    time: +(i * ph.dur).toFixed(3),
-    pose_id: pid,
-    transition_id: '__preview__'
-  }));
-  const totalDur = +(validPoses.length * ph.dur).toFixed(2);
+  const durList = (ph.durs && ph.durs.length === ph.poses.length) ? ph.durs : ph.poses.map(() => ph.dur);
+  let kfTime = 0;
+  const kfs = validPoses.map((pid, i) => {
+    const kf = { time: +kfTime.toFixed(3), pose_id: pid, transition_id: '__preview__' };
+    kfTime += Math.max(0.05, durList[i] ?? ph.dur);
+    return kf;
+  });
+  const totalDur = +kfTime.toFixed(2);
 
   _playTimeline = kfs;
   _playDur      = totalDur;
@@ -2424,7 +2455,8 @@ window.startEditPhrase = function(phId) {
   const ph = PHRASE_DB[phId];
   if (!ph) return;
   _editingPhraseId  = phId;
-  _editingPhraseBuf = { name: ph.name, poses: [...ph.poses], dur: ph.dur };
+  const existingDurs = ph.durs && ph.durs.length === ph.poses.length ? [...ph.durs] : ph.poses.map(() => ph.dur);
+  _editingPhraseBuf = { name: ph.name, poses: [...ph.poses], durs: existingDurs, dur: ph.dur };
   _showNewPhraseForm = false;
   renderPhraseList();
   // 편집 카드로 스크롤
@@ -2444,15 +2476,19 @@ window.savePhrase = function(phId) {
   const buf = _editingPhraseBuf;
   if (!buf) return;
   const name = (document.getElementById(`ph-name-inp-${phId}`)?.value || buf.name).trim();
-  const dur  = parseFloat(document.getElementById(`ph-dur-inp-${phId}`)?.value) || buf.dur;
   if (!name) { alert('이름을 입력하세요.'); return; }
   if (buf.poses.length < 2) { alert('포즈를 2개 이상 추가하세요.'); return; }
-  // 유효성 검사
   const invalid = buf.poses.filter(p => !POSE_DB[p]);
   if (invalid.length) { alert(`존재하지 않는 포즈:\n${invalid.join(', ')}`); return; }
 
-  PHRASE_DB[phId] = { name, poses: [...buf.poses], dur: Math.max(0.1, dur) };
-  // 필수 구 드롭다운 갱신
+  // DOM에서 현재 입력값 읽어 durs[] 확정
+  const durs = buf.poses.map((_, i) => {
+    const v = parseFloat(document.getElementById(`ph-dinp-${phId}-${i}`)?.value);
+    return Math.max(0.05, isNaN(v) ? (buf.durs[i] ?? buf.dur) : v);
+  });
+  const avgDur = +(durs.reduce((s, d) => s + d, 0) / durs.length).toFixed(3);
+
+  PHRASE_DB[phId] = { name, poses: [...buf.poses], durs, dur: avgDur };
   _refreshPhraseSelect();
   _editingPhraseId  = null;
   _editingPhraseBuf = null;
@@ -2461,46 +2497,65 @@ window.savePhrase = function(phId) {
 };
 
 // ── 편집 카드 포즈 조작 ───────────────────────────────────────
+/** 총 합계 레이블 갱신 */
+function _refreshEditTotal(phId, buf) {
+  const lbl = document.getElementById(`ph-total-lbl-${phId}`);
+  if (lbl) lbl.textContent = _bufTotalStr(buf);
+}
+function _refreshNewTotal() {
+  const lbl = document.getElementById('new-ph-total-lbl');
+  if (lbl && _newPhraseBuf) lbl.textContent = _bufTotalStr(_newPhraseBuf);
+}
+
 window.onPhrasePoseChange = function(phId, idx, val) {
   if (_editingPhraseBuf) _editingPhraseBuf.poses[idx] = val.trim();
-  // 합계 레이블 갱신
-  const lbl = document.getElementById(`ph-total-lbl-${phId}`);
-  if (lbl && _editingPhraseBuf)
-    lbl.textContent = (_editingPhraseBuf.poses.length * _editingPhraseBuf.dur).toFixed(1) + 's';
+};
+
+window.onPhraseDurChange = function(phId, idx, val) {
+  if (!_editingPhraseBuf) return;
+  _editingPhraseBuf.durs[idx] = Math.max(0.05, parseFloat(val) || 0.5);
+  _refreshEditTotal(phId, _editingPhraseBuf);
+};
+
+/** 일괄 적용 — 모든 포즈에 동일 시간 적용 후 목록 리렌더 */
+window.applyBulkDur = function(phId) {
+  if (!_editingPhraseBuf) return;
+  const v = parseFloat(document.getElementById(`ph-bulk-inp-${phId}`)?.value);
+  const d = Math.max(0.05, isNaN(v) ? 0.5 : v);
+  _editingPhraseBuf.dur  = d;
+  _editingPhraseBuf.durs = _editingPhraseBuf.poses.map(() => d);
+  // 포즈 목록 리렌더 (입력값 반영)
+  const listEl = document.getElementById(`ph-pose-list-${phId}`);
+  if (listEl) listEl.outerHTML =
+    `<div class="ph-pose-list" id="ph-pose-list-${phId}">${_poseRowsHTML(_editingPhraseBuf.poses, _editingPhraseBuf.durs, phId, false)}</div>`;
+  _refreshEditTotal(phId, _editingPhraseBuf);
 };
 
 window.addPhraseRow = function(phId) {
   if (!_editingPhraseBuf) return;
+  const defDur = _editingPhraseBuf.dur;
   _editingPhraseBuf.poses.push('P-001');
-  // 편집 카드 내 pose-list 만 리렌더
+  _editingPhraseBuf.durs.push(defDur);
   const listEl = document.getElementById(`ph-pose-list-${phId}`);
-  if (listEl) listEl.outerHTML = `<div class="ph-pose-list" id="ph-pose-list-${phId}">${
-    _editingPhraseBuf.poses.map((pid, i) => `
-      <div class="ph-pose-edit-row">
-        <span class="ph-pose-num">${i+1}</span>
-        <input class="ph-pose-text-inp" list="pose-datalist" value="${pid}" placeholder="P-001"
-          id="ph-einp-${phId}-${i}"
-          onchange="onPhrasePoseChange('${phId}',${i},this.value)"/>
-        <button class="ph-btn ph-btn-move" onclick="movePhraseRow('${phId}',${i},-1)">↑</button>
-        <button class="ph-btn ph-btn-move" onclick="movePhraseRow('${phId}',${i},+1)">↓</button>
-        <button class="ph-btn ph-btn-play" style="padding:2px 7px;font-size:9px;" onclick="previewPose('${pid}')">▶</button>
-        <button class="ph-btn ph-btn-del-row" onclick="removePhraseRow('${phId}',${i})">✕</button>
-      </div>`).join('')
-  }</div>`;
+  if (listEl) listEl.outerHTML =
+    `<div class="ph-pose-list" id="ph-pose-list-${phId}">${_poseRowsHTML(_editingPhraseBuf.poses, _editingPhraseBuf.durs, phId, false)}</div>`;
+  _refreshEditTotal(phId, _editingPhraseBuf);
 };
 
 window.removePhraseRow = function(phId, idx) {
   if (!_editingPhraseBuf || _editingPhraseBuf.poses.length <= 2) { alert('최소 2개 포즈가 필요합니다.'); return; }
   _editingPhraseBuf.poses.splice(idx, 1);
+  _editingPhraseBuf.durs.splice(idx, 1);
   renderPhraseList();
 };
 
 window.movePhraseRow = function(phId, idx, dir) {
   if (!_editingPhraseBuf) return;
-  const poses = _editingPhraseBuf.poses;
+  const { poses, durs } = _editingPhraseBuf;
   const j = idx + dir;
   if (j < 0 || j >= poses.length) return;
   [poses[idx], poses[j]] = [poses[j], poses[idx]];
+  [durs[idx],  durs[j]]  = [durs[j],  durs[idx]];
   renderPhraseList();
 };
 
@@ -2508,7 +2563,7 @@ window.movePhraseRow = function(phId, idx, dir) {
 window.toggleNewPhraseForm = function() {
   _showNewPhraseForm = !_showNewPhraseForm;
   if (_showNewPhraseForm) {
-    _newPhraseBuf    = { name: '새 동작', poses: ['P-001', 'P-002'], dur: 0.5 };
+    _newPhraseBuf    = { name: '새 동작', poses: ['P-001', 'P-002'], durs: [0.5, 0.5], dur: 0.5 };
     _editingPhraseId = null;
     _editingPhraseBuf = null;
   } else {
@@ -2533,23 +2588,17 @@ window.cancelNewPhrase = function() {
 window.addNewPhraseRow = function() {
   if (!_newPhraseBuf) return;
   _newPhraseBuf.poses.push('P-001');
-  // pose-list만 갱신
+  _newPhraseBuf.durs.push(_newPhraseBuf.dur);
   const listEl = document.getElementById('new-ph-pose-list');
-  if (listEl) {
-    listEl.innerHTML = _newPhraseBuf.poses.map((pid, i) => `
-      <div class="ph-pose-edit-row">
-        <span class="ph-pose-num">${i+1}</span>
-        <input class="ph-pose-text-inp" list="pose-datalist" value="${pid}" placeholder="P-001"
-          onchange="onNewPhrasePoseChange(${i},this.value)"/>
-        <button class="ph-btn ph-btn-play" style="padding:2px 7px;font-size:9px;" onclick="previewPose('${pid}')">▶</button>
-        <button class="ph-btn ph-btn-del-row" onclick="removeNewPhraseRow(${i})">✕</button>
-      </div>`).join('');
-  }
+  if (listEl) listEl.outerHTML =
+    `<div class="ph-pose-list" id="new-ph-pose-list">${_poseRowsHTML(_newPhraseBuf.poses, _newPhraseBuf.durs, null, true)}</div>`;
+  _refreshNewTotal();
 };
 
 window.removeNewPhraseRow = function(idx) {
   if (!_newPhraseBuf || _newPhraseBuf.poses.length <= 2) { alert('최소 2개 포즈가 필요합니다.'); return; }
   _newPhraseBuf.poses.splice(idx, 1);
+  _newPhraseBuf.durs.splice(idx, 1);
   renderPhraseList();
 };
 
@@ -2557,23 +2606,46 @@ window.onNewPhrasePoseChange = function(idx, val) {
   if (_newPhraseBuf) _newPhraseBuf.poses[idx] = val.trim();
 };
 
+window.onNewPhraseDurChange = function(idx, val) {
+  if (!_newPhraseBuf) return;
+  _newPhraseBuf.durs[idx] = Math.max(0.05, parseFloat(val) || 0.5);
+  _refreshNewTotal();
+};
+
+window.applyBulkDurNew = function() {
+  if (!_newPhraseBuf) return;
+  const v = parseFloat(document.getElementById('new-ph-bulk')?.value);
+  const d = Math.max(0.05, isNaN(v) ? 0.5 : v);
+  _newPhraseBuf.dur  = d;
+  _newPhraseBuf.durs = _newPhraseBuf.poses.map(() => d);
+  const listEl = document.getElementById('new-ph-pose-list');
+  if (listEl) listEl.outerHTML =
+    `<div class="ph-pose-list" id="new-ph-pose-list">${_poseRowsHTML(_newPhraseBuf.poses, _newPhraseBuf.durs, null, true)}</div>`;
+  _refreshNewTotal();
+};
+
 window.saveNewPhrase = function() {
   const buf = _newPhraseBuf;
   if (!buf) return;
   const name = (document.getElementById('new-ph-name')?.value || buf.name).trim();
-  const dur  = parseFloat(document.getElementById('new-ph-dur')?.value) || buf.dur;
   if (!name) { alert('이름을 입력하세요.'); return; }
   if (buf.poses.length < 2) { alert('포즈를 2개 이상 추가하세요.'); return; }
   const invalid = buf.poses.filter(p => !POSE_DB[p]);
   if (invalid.length) { alert(`존재하지 않는 포즈:\n${invalid.join(', ')}`); return; }
 
-  // 다음 PH-xxx ID 생성
+  // DOM에서 durs 읽기
+  const durs = buf.poses.map((_, i) => {
+    const v = parseFloat(document.getElementById(`ph-ndinp-${i}`)?.value);
+    return Math.max(0.05, isNaN(v) ? (buf.durs[i] ?? buf.dur) : v);
+  });
+  const avgDur = +(durs.reduce((s, d) => s + d, 0) / durs.length).toFixed(3);
+
   const maxNum = Object.keys(PHRASE_DB)
     .map(k => parseInt(k.slice(3)))
     .reduce((m, n) => Math.max(m, n), 0);
   const newId = `PH-${String(maxNum + 1).padStart(3, '0')}`;
 
-  PHRASE_DB[newId] = { name, poses: [...buf.poses], dur: Math.max(0.1, dur) };
+  PHRASE_DB[newId] = { name, poses: [...buf.poses], durs, dur: avgDur };
   _refreshPhraseSelect();
   _showNewPhraseForm = false;
   _newPhraseBuf = null;
