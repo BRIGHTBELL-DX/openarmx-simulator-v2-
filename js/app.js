@@ -2508,6 +2508,7 @@ window.savePhrase = function(phId) {
   _editingPhraseId  = null;
   _editingPhraseBuf = null;
   renderPhraseList();
+  _saveSession();   // 구 편집 세션 저장
   setStatus(`✓ ${phId} (${name}) 저장됨`);
 };
 
@@ -2665,6 +2666,7 @@ window.saveNewPhrase = function() {
   _showNewPhraseForm = false;
   _newPhraseBuf = null;
   renderPhraseList();
+  _saveSession();   // 신규 구 세션 저장
   setStatus(`✓ ${newId} (${name}) 추가됨`);
   // 새 카드로 스크롤
   setTimeout(() => {
@@ -2795,6 +2797,7 @@ window.addEventListener('resize', resizeRenderer);
 const _SS_TL  = 'oax_sess_tl';   // tlRows JSON
 const _SS_NP  = 'oax_sess_np';   // N-series 포즈
 const _SS_REQ = 'oax_sess_req';  // 필수 포즈·구
+const _SS_PH  = 'oax_sess_ph';   // PHRASE_DB 변경분 (추가·수정된 구)
 
 function _saveSession() {
   try {
@@ -2807,6 +2810,8 @@ function _saveSession() {
     sessionStorage.setItem(_SS_NP, JSON.stringify(np));
     // 필수 포즈·구 저장
     sessionStorage.setItem(_SS_REQ, JSON.stringify({ reqPoses, reqPhrases }));
+    // PHRASE_DB 전체 저장 (편집·추가 반영)
+    sessionStorage.setItem(_SS_PH, JSON.stringify(PHRASE_DB));
   } catch(e) { /* 스토리지 용량 초과 등 무시 */ }
 }
 
@@ -2814,6 +2819,14 @@ function _saveSession() {
 function _restoreSession() {
   try {
     let restored = false;
+
+    // 0. PHRASE_DB 복원 (편집·추가된 구 포함) — 가장 먼저 실행
+    const phStr = sessionStorage.getItem(_SS_PH);
+    if (phStr) {
+      const saved = JSON.parse(phStr);
+      Object.entries(saved).forEach(([id, ph]) => { PHRASE_DB[id] = ph; });
+      _refreshPhraseSelect();
+    }
 
     // 1. N-series 포즈 먼저 복원 (tlRows에서 참조하기 때문)
     const npStr = sessionStorage.getItem(_SS_NP);
