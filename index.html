@@ -236,86 +236,53 @@ body {
   .hud-chip { font-size:10px; padding:4px 8px; }
 }
 
-/* ── 배경 컬러 선택기 ── */
-#bg-picker-wrap {
+/* ── 통합 컬러 선택기 ── */
+#color-picker-wrap {
   position:absolute; top:12px; right:12px;
   display:flex; flex-direction:column; align-items:flex-end; gap:6px;
   z-index:500; pointer-events:all;
 }
-#bg-picker-toggle {
+#color-picker-toggle {
   width:30px; height:30px; border-radius:50%;
   border:2px solid rgba(255,255,255,0.25);
   cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.5);
   transition:transform .15s, border-color .15s;
   background:#0a0a18;
-}
-#bg-picker-toggle:hover { transform:scale(1.1); border-color:rgba(255,255,255,0.5); }
-#bg-palette {
-  display:none; flex-direction:column; gap:5px; align-items:flex-end;
-  background:rgba(10,10,25,0.92); border:1px solid #2a3060;
-  border-radius:10px; padding:8px 10px;
-  box-shadow:0 8px 24px rgba(0,0,0,0.6);
-}
-#bg-palette.open { display:flex; }
-.bg-palette-row { display:flex; gap:5px; align-items:center; }
-.bg-swatch {
-  width:22px; height:22px; border-radius:50%; cursor:pointer;
-  border:2px solid transparent; transition:transform .12s, border-color .12s;
-  box-shadow:0 1px 4px rgba(0,0,0,0.4);
-}
-.bg-swatch:hover  { transform:scale(1.18); }
-.bg-swatch.active { border-color:#4a90e2; transform:scale(1.12); }
-#bg-custom-inp {
-  width:22px; height:22px; border-radius:50%; cursor:pointer;
-  border:2px solid #334; padding:0; overflow:hidden;
-  background:none; outline:none;
-}
-#bg-palette-label { font-size:9px; color:#556; letter-spacing:1px; text-align:right; }
-
-/* ── 스킨 컬러 선택기 ── */
-#skin-picker-wrap {
-  position:absolute; top:56px; right:12px;
-  display:flex; flex-direction:column; align-items:flex-end; gap:6px;
-  z-index:500; pointer-events:all;
-}
-#skin-picker-toggle {
-  width:30px; height:30px; border-radius:50%;
-  border:2px solid rgba(255,255,255,0.25);
-  cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.5);
-  transition:transform .15s, border-color .15s;
-  background:linear-gradient(135deg,#1a4a9a 50%,#9a2a1a 50%);
   display:flex; align-items:center; justify-content:center;
-  font-size:13px; line-height:1; user-select:none;
+  font-size:14px; line-height:1; user-select:none;
 }
-#skin-picker-toggle:hover { transform:scale(1.1); border-color:rgba(255,255,255,0.5); }
-#skin-palette {
+#color-picker-toggle:hover { transform:scale(1.1); border-color:rgba(255,255,255,0.5); }
+#color-palette {
   display:none; flex-direction:column; gap:7px; align-items:flex-end;
-  background:rgba(10,10,25,0.92); border:1px solid #2a3060;
-  border-radius:10px; padding:10px 12px;
-  box-shadow:0 8px 24px rgba(0,0,0,0.6);
-  min-width:160px;
+  background:rgba(10,10,25,0.94); border:1px solid #2a3060;
+  border-radius:12px; padding:11px 13px;
+  box-shadow:0 8px 28px rgba(0,0,0,0.65);
+  min-width:170px;
 }
-#skin-palette.open { display:flex; }
-#skin-palette-label { font-size:9px; color:#556; letter-spacing:1px; text-align:right; margin-bottom:1px; }
-.skin-row {
+#color-palette.open { display:flex; }
+.cp-section-lbl {
+  font-size:9px; color:#4a90e2; letter-spacing:1.2px; text-transform:uppercase;
+  text-align:right; width:100%; margin-bottom:1px;
+}
+.cp-row {
   display:flex; align-items:center; justify-content:flex-end; gap:5px; width:100%;
 }
-.skin-row-lbl {
-  font-size:9px; color:#668; letter-spacing:.5px; min-width:40px; text-align:right; flex-shrink:0;
+.cp-row-lbl {
+  font-size:9px; color:#668; letter-spacing:.5px; min-width:46px; text-align:right; flex-shrink:0;
 }
-.skin-swatch {
+.cp-swatch {
   width:20px; height:20px; border-radius:50%; cursor:pointer;
   border:2px solid transparent; transition:transform .12s, border-color .12s;
-  box-shadow:0 1px 4px rgba(0,0,0,0.5); flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,0.45); flex-shrink:0;
 }
-.skin-swatch:hover  { transform:scale(1.2); }
-.skin-swatch.active { border-color:#4a90e2; transform:scale(1.1); }
-.skin-custom-inp {
+.cp-swatch:hover  { transform:scale(1.2); }
+.cp-swatch.active { border-color:#4a90e2; transform:scale(1.1); }
+.cp-inp {
   width:20px; height:20px; border-radius:50%; cursor:pointer;
   border:2px solid #334; padding:0; overflow:hidden;
   background:none; outline:none; flex-shrink:0;
 }
-.skin-divider { width:100%; height:1px; background:#1e2040; margin:1px 0; }
+.cp-divider { width:100%; height:1px; background:#1e2040; margin:2px 0; }
 
 /* ── 온보딩 가이드 ── */
 #guide-overlay {
@@ -520,67 +487,54 @@ body {
   </div>
   <div id="rec-badge">● REC</div>
 
-  <!-- 배경 컬러 선택기 -->
-  <div id="bg-picker-wrap">
-    <div id="bg-picker-toggle" title="배경 색상 변경" onclick="toggleBgPalette()"></div>
-    <div id="bg-palette">
-      <div id="bg-palette-label">배경 색상</div>
-      <div class="bg-palette-row">
-        <div class="bg-swatch active" data-bg="dark"   style="background:#0a0a18;" title="어두운 (기본)"  onclick="setBgPreset('dark')"></div>
-        <div class="bg-swatch"        data-bg="navy"   style="background:#0d1a2e;" title="딥 네이비"      onclick="setBgPreset('navy')"></div>
-        <div class="bg-swatch"        data-bg="black"  style="background:#000000;" title="완전 검정"      onclick="setBgPreset('black')"></div>
-        <div class="bg-swatch"        data-bg="lgray"  style="background:#b0b8c8;" title="밝은 회색"      onclick="setBgPreset('lgray')"></div>
-        <div class="bg-swatch"        data-bg="white"  style="background:#f0f0f5;" title="흰색"            onclick="setBgPreset('white')"></div>
-        <input type="color" id="bg-custom-inp" title="직접 선택" value="#0a0a18" oninput="setBgCustom(this.value)">
-      </div>
-    </div>
-  </div>
+  <!-- 통합 컬러 선택기 -->
+  <div id="color-picker-wrap">
+    <div id="color-picker-toggle" title="색상 설정" onclick="toggleColorPalette()">🎨</div>
+    <div id="color-palette">
 
-  <!-- 스킨 컬러 선택기 -->
-  <div id="skin-picker-wrap">
-    <div id="skin-picker-toggle" title="로봇 스킨 색상 변경" onclick="toggleSkinPalette()">🎨</div>
-    <div id="skin-palette">
-      <div id="skin-palette-label">스킨 색상</div>
-
-      <!-- 프리셋 행 -->
-      <div class="skin-row">
-        <span class="skin-row-lbl">프리셋</span>
-        <div class="skin-swatch" style="background:linear-gradient(135deg,#1a4a9a 50%,#9a2a1a 50%)" title="기본 (청/적)" onclick="setSkinPreset('default')"></div>
-        <div class="skin-swatch" style="background:linear-gradient(135deg,#d0d0d0 50%,#d0d0d0 50%)" title="흰색 통일"   onclick="setSkinPreset('white')"></div>
-        <div class="skin-swatch" style="background:linear-gradient(135deg,#1a1a1a 50%,#1a1a1a 50%)" title="검정 통일"   onclick="setSkinPreset('black')"></div>
-        <div class="skin-swatch" style="background:linear-gradient(135deg,#1a5a2a 50%,#5a2a1a 50%)" title="녹/갈색"     onclick="setSkinPreset('green')"></div>
-        <div class="skin-swatch" style="background:linear-gradient(135deg,#888888 50%,#888888 50%)" title="메탈 실버"   onclick="setSkinPreset('silver')"></div>
+      <!-- 배경 섹션 -->
+      <div class="cp-section-lbl">배경</div>
+      <div class="cp-row">
+        <span class="cp-row-lbl">프리셋</span>
+        <div class="cp-swatch active" data-bg="dark"  style="background:#0a0a18;" title="어두운 (기본)" onclick="setBgPreset('dark')"></div>
+        <div class="cp-swatch"        data-bg="navy"  style="background:#0d1a2e;" title="딥 네이비"     onclick="setBgPreset('navy')"></div>
+        <div class="cp-swatch"        data-bg="black" style="background:#000000;" title="완전 검정"     onclick="setBgPreset('black')"></div>
+        <div class="cp-swatch"        data-bg="lgray" style="background:#b0b8c8;" title="밝은 회색"     onclick="setBgPreset('lgray')"></div>
+        <div class="cp-swatch"        data-bg="white" style="background:#f0f0f5;" title="흰색"           onclick="setBgPreset('white')"></div>
+        <input type="color" class="cp-inp" id="bg-custom-inp" title="직접 선택" value="#0a0a18" oninput="setBgCustom(this.value)">
       </div>
 
-      <div class="skin-divider"></div>
+      <div class="cp-divider"></div>
 
-      <!-- 왼팔 -->
-      <div class="skin-row">
-        <span class="skin-row-lbl">왼팔</span>
-        <input type="color" class="skin-custom-inp" id="skin-left-inp"  title="왼팔 색상" value="#1a4a9a" oninput="setSkinPart('left', this.value)">
+      <!-- 스킨 섹션 -->
+      <div class="cp-section-lbl">로봇 스킨</div>
+      <div class="cp-row">
+        <span class="cp-row-lbl">프리셋</span>
+        <div class="cp-swatch" data-skin="default" style="background:linear-gradient(135deg,#3a7ae0 50%,#e04030 50%)" title="기본 (청/적)" onclick="setSkinPreset('default')"></div>
+        <div class="cp-swatch" data-skin="white"   style="background:#d8d8d8;"                                         title="흰색 통일"   onclick="setSkinPreset('white')"></div>
+        <div class="cp-swatch" data-skin="black"   style="background:#2a2a2a;"                                         title="검정 통일"   onclick="setSkinPreset('black')"></div>
+        <div class="cp-swatch" data-skin="green"   style="background:linear-gradient(135deg,#2a8a40 50%,#8a4020 50%)" title="녹/갈색"     onclick="setSkinPreset('green')"></div>
+        <div class="cp-swatch" data-skin="silver"  style="background:#9aaabb;"                                         title="메탈 실버"   onclick="setSkinPreset('silver')"></div>
       </div>
-      <!-- 오른팔 -->
-      <div class="skin-row">
-        <span class="skin-row-lbl">오른팔</span>
-        <input type="color" class="skin-custom-inp" id="skin-right-inp" title="오른팔 색상" value="#9a2a1a" oninput="setSkinPart('right', this.value)">
+      <div class="cp-row">
+        <span class="cp-row-lbl">왼팔</span>
+        <input type="color" class="cp-inp" id="skin-left-inp"  title="왼팔 색상"  value="#3a7ae0" oninput="setSkinPart('left', this.value)">
       </div>
-      <!-- 몸통 -->
-      <div class="skin-row">
-        <span class="skin-row-lbl">몸통</span>
-        <input type="color" class="skin-custom-inp" id="skin-body-inp"  title="몸통 색상" value="#334466" oninput="setSkinPart('body', this.value)">
+      <div class="cp-row">
+        <span class="cp-row-lbl">오른팔</span>
+        <input type="color" class="cp-inp" id="skin-right-inp" title="오른팔 색상" value="#e04030" oninput="setSkinPart('right', this.value)">
       </div>
-      <!-- 손/그리퍼 -->
-      <div class="skin-row">
-        <span class="skin-row-lbl">손/그리퍼</span>
-        <input type="color" class="skin-custom-inp" id="skin-hand-inp"  title="손 색상" value="#556677" oninput="setSkinPart('hand', this.value)">
+      <div class="cp-row">
+        <span class="cp-row-lbl">몸통</span>
+        <input type="color" class="cp-inp" id="skin-body-inp"  title="몸통 색상"  value="#4a6080" oninput="setSkinPart('body', this.value)">
       </div>
-
-      <div class="skin-divider"></div>
-
-      <!-- 양팔 동시 적용 -->
-      <div class="skin-row">
-        <span class="skin-row-lbl" style="color:#88a">동시 적용</span>
-        <input type="color" class="skin-custom-inp" id="skin-both-inp" title="양팔 동일 색상" value="#1a4a9a" oninput="setSkinBoth(this.value)">
+      <div class="cp-row">
+        <span class="cp-row-lbl">손/그리퍼</span>
+        <input type="color" class="cp-inp" id="skin-hand-inp"  title="손 색상"    value="#7a8898" oninput="setSkinPart('hand', this.value)">
+      </div>
+      <div class="cp-row">
+        <span class="cp-row-lbl" style="color:#88a">양팔 동시</span>
+        <input type="color" class="cp-inp" id="skin-both-inp"  title="양팔 동일 색상" value="#3a7ae0" oninput="setSkinBoth(this.value)">
       </div>
     </div>
   </div>
@@ -1145,57 +1099,46 @@ const BG_PRESETS = {
 };
 
 function _applyBg(hex, preset) {
-  // Three.js
   scene.background.set(hex);
   scene.fog.color.set(hex);
   if (preset) scene.fog.density = preset.fogD;
-
-  // 그리드 색상
   if (preset && grid) {
     grid.material[0].color.set(preset.grid1);
     grid.material[1].color.set(preset.grid2);
   }
-
-  // CSS 뷰포트 배경
-  const vp = document.getElementById('viewport');
-  vp.style.background = hex;
-
-  // 토글 버튼 색상 동기화
-  const tog = document.getElementById('bg-picker-toggle');
-  if (tog) tog.style.background = hex;
-
-  // localStorage 저장
+  document.getElementById('viewport').style.background = hex;
   localStorage.setItem('oax_bg', hex);
 }
 
-window.toggleBgPalette = function() {
-  document.getElementById('bg-palette').classList.toggle('open');
+window.toggleColorPalette = function() {
+  document.getElementById('color-palette').classList.toggle('open');
 };
+// 하위 호환 (구 함수명 참조 방어)
+window.toggleBgPalette    = window.toggleColorPalette;
+window.toggleSkinPalette  = window.toggleColorPalette;
 
 window.setBgPreset = function(key) {
   const p = BG_PRESETS[key];
   if (!p) return;
   _applyBg(p.bg, p);
-  // 스와치 active 표시
-  document.querySelectorAll('.bg-swatch').forEach(s => s.classList.toggle('active', s.dataset.bg === key));
+  document.querySelectorAll('.cp-swatch[data-bg]').forEach(s => s.classList.toggle('active', s.dataset.bg === key));
   document.getElementById('bg-custom-inp').value = p.bg;
 };
 
 window.setBgCustom = function(hex) {
   _applyBg(hex, null);
-  document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
-  document.getElementById('bg-picker-toggle').style.background = hex;
+  document.querySelectorAll('.cp-swatch[data-bg]').forEach(s => s.classList.remove('active'));
 };
 
 // ════════════════════════════════════════════════════════════
 //  스킨 컬러 선택기
 // ════════════════════════════════════════════════════════════
 const SKIN_PRESETS = {
-  default: { left:'#1a4a9a', right:'#9a2a1a', body:'#334466', hand:'#556677', jL:'#4488ff', jR:'#ff6644' },
-  white:   { left:'#d0d0d0', right:'#d0d0d0', body:'#b0b0b0', hand:'#c0c0c0', jL:'#e0e0e0', jR:'#e0e0e0' },
-  black:   { left:'#1a1a1a', right:'#1a1a1a', body:'#222222', hand:'#111111', jL:'#3a3a3a', jR:'#3a3a3a' },
-  green:   { left:'#1a5a2a', right:'#5a2a1a', body:'#2a3a22', hand:'#3a3a2a', jL:'#44aa55', jR:'#aa6633' },
-  silver:  { left:'#6a7a8a', right:'#6a7a8a', body:'#555f6a', hand:'#4a5560', jL:'#aabbcc', jR:'#aabbcc' },
+  default: { left:'#3a7ae0', right:'#e04030', body:'#4a6080', hand:'#7a8898', jL:'#6aabff', jR:'#ff8866' },
+  white:   { left:'#d8d8d8', right:'#d8d8d8', body:'#c0c0c0', hand:'#d0d0d0', jL:'#f0f0f0', jR:'#f0f0f0' },
+  black:   { left:'#2a2a2a', right:'#2a2a2a', body:'#333333', hand:'#222222', jL:'#555555', jR:'#555555' },
+  green:   { left:'#2a8a40', right:'#8a4020', body:'#3a5030', hand:'#4a5040', jL:'#44cc66', jR:'#cc7744' },
+  silver:  { left:'#9aaabb', right:'#9aaabb', body:'#7a8898', hand:'#6a7888', jL:'#c8dae8', jR:'#c8dae8' },
 };
 
 // 씬 내 모든 Mesh 색상 재적용 (getMat 기준으로 재매핑)
@@ -1257,12 +1200,9 @@ window.setSkinPreset = function(key) {
   const p = SKIN_PRESETS[key];
   if (!p) return;
   ['left','right','body','hand'].forEach(part => _applySkinPart(part, p[part]));
-  // 입력창 색상 동기화
   const ids = { left:'skin-left-inp', right:'skin-right-inp', body:'skin-body-inp', hand:'skin-hand-inp' };
-  Object.entries(ids).forEach(([k,id]) => {
-    const el = document.getElementById(id);
-    if (el) el.value = p[k];
-  });
+  Object.entries(ids).forEach(([k,id]) => { const el = document.getElementById(id); if (el) el.value = p[k]; });
+  document.querySelectorAll('.cp-swatch[data-skin]').forEach(s => s.classList.toggle('active', s.dataset.skin === key));
   localStorage.setItem('oax_skin', JSON.stringify(p));
 };
 
@@ -1332,14 +1272,14 @@ const sceneRoot = new THREE.Group();
 sceneRoot.rotation.x = -PI/2;
 scene.add(sceneRoot);
 
-// 재질
+// 재질 — metalness 낮춤으로 선택 색상이 실제로 보이게 조정
 const MAT = {
-  body:  new THREE.MeshStandardMaterial({color:0x334466,roughness:.5,metalness:.6}),
-  left:  new THREE.MeshStandardMaterial({color:0x1a4a9a,roughness:.3,metalness:.7}),
-  right: new THREE.MeshStandardMaterial({color:0x9a2a1a,roughness:.3,metalness:.7}),
-  hand:  new THREE.MeshStandardMaterial({color:0x556677,roughness:.4,metalness:.5}),
-  jL:    new THREE.MeshStandardMaterial({color:0x4488ff,roughness:.2,metalness:.9,emissive:0x112244}),
-  jR:    new THREE.MeshStandardMaterial({color:0xff6644,roughness:.2,metalness:.9,emissive:0x441122}),
+  body:  new THREE.MeshStandardMaterial({color:0x4a6080,roughness:.55,metalness:.25}),
+  left:  new THREE.MeshStandardMaterial({color:0x3a7ae0,roughness:.35,metalness:.25}),
+  right: new THREE.MeshStandardMaterial({color:0xe04030,roughness:.35,metalness:.25}),
+  hand:  new THREE.MeshStandardMaterial({color:0x7a8898,roughness:.45,metalness:.20}),
+  jL:    new THREE.MeshStandardMaterial({color:0x6aabff,roughness:.25,metalness:.35,emissive:0x112244}),
+  jR:    new THREE.MeshStandardMaterial({color:0xff8866,roughness:.25,metalness:.35,emissive:0x441122}),
   tcp:   new THREE.MeshStandardMaterial({color:0x00ff88,emissive:0x00aa44,emissiveIntensity:.9,roughness:.1}),
 };
 
@@ -2755,10 +2695,8 @@ setStatus('메시 로딩 중...');
 
 // 팔레트 외부 클릭 닫기
 document.addEventListener('click', function(e) {
-  const bgWrap   = document.getElementById('bg-picker-wrap');
-  const skinWrap = document.getElementById('skin-picker-wrap');
-  if (bgWrap   && !bgWrap.contains(e.target))   document.getElementById('bg-palette').classList.remove('open');
-  if (skinWrap && !skinWrap.contains(e.target))  document.getElementById('skin-palette').classList.remove('open');
+  const wrap = document.getElementById('color-picker-wrap');
+  if (wrap && !wrap.contains(e.target)) document.getElementById('color-palette').classList.remove('open');
 });
 
 // ── 온보딩 가이드 ──────────────────────────────────────────
