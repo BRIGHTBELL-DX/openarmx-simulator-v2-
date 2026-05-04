@@ -1837,52 +1837,74 @@ window.generateDance = function() {
   tlRows = [];
 
   // ── Step 1: 기본 타임라인 → tlRows (time 기반 duration 계산)
-  // reqPoses를 timeline에 time:0으로 splice하면 dur = next_time - 0 = next_time 이 되어
-  // 수 초짜리 홀드가 생기는 버그가 있으므로, 이 단계에선 기본 시퀀스만 변환한다.
   for (let i = 0; i < timeline.length; i++) {
     const dur = i < timeline.length - 1
       ? +((timeline[i+1].time - timeline[i].time).toFixed(1))
-      : 0.3;
-    // 단일 포즈 최대 0.8 초 상한 적용
+      : 0.5;
     tlRows.push({ pose_id: timeline[i].pose_id, duration: Math.max(0.1, Math.min(0.8, dur)) });
   }
 
-  // ── Step 2: 필수 포즈(reqPoses) → tlRows 레벨에서 삽입
-  // 이전 행의 시간을 분할해 전체 총 길이가 늘어나지 않도록 한다.
+  // ── Step 2: 필수 포즈(reqPoses) 삽입 — tlRows 레벨 (time:0 버그 방지)
   if (reqPoses.length) {
     const step = Math.max(2, Math.floor(tlRows.length / (reqPoses.length + 1)));
     reqPoses.forEach((pid, i) => {
       const idx = Math.min(step * (i + 1) + i, tlRows.length - 2);
-      const reqDur = +(0.4 + Math.random() * 0.2).toFixed(1); // 0.4~0.6 s
-      // 앞 행에서 시간을 빌려 총 길이를 유지
-      if (idx > 0 && tlRows[idx - 1].duration > reqDur + 0.15) {
-        tlRows[idx - 1].duration = Math.max(0.1, +(tlRows[idx - 1].duration - reqDur).toFixed(1));
-      }
-      tlRows.splice(idx, 0, { pose_id: pid, duration: reqDur });
+      tlRows.splice(idx, 0, { pose_id: pid, duration: 0.5 });
     });
   }
 
   // ── Step 3: 생성 포즈(N-series) 랜덤 삽입
-  // 삽입 시 이전 행에서 시간을 빌려 전체 총 길이(≒ 음악 길이)를 보존한다.
   const nIds = Object.keys(CUSTOM_POSE_META);
   if (nIds.length) {
     const slots = [];
     for (let i = 2; i < tlRows.length - 3; i++) {
-      if (Math.random() < 0.20) slots.push(i + slots.length); // 삽입 후 인덱스 보정
+      if (Math.random() < 0.20) slots.push(i + slots.length);
     }
     slots.forEach(idx => {
-      const pid  = nIds[Math.floor(Math.random() * nIds.length)];
-      const nDur = +(0.4 + Math.random() * 0.3).toFixed(1);  // 0.4~0.7 s
-      // 앞 행에서 시간을 빌려 총 길이를 유지
-      if (idx > 0 && tlRows[idx - 1].duration > nDur + 0.15) {
-        tlRows[idx - 1].duration = Math.max(0.1, +(tlRows[idx - 1].duration - nDur).toFixed(1));
-      }
-      tlRows.splice(idx, 0, { pose_id: pid, duration: nDur });
+      const pid = nIds[Math.floor(Math.random() * nIds.length)];
+      tlRows.splice(idx, 0, { pose_id: pid, duration: 0.5 });
     });
   }
 
-  // ── Step 4: 전체 상한 재검사 — 어떤 행도 0.8 s 초과 금지
-  tlRows.forEach(r => { r.duration = Math.min(0.8, r.duration); });
+  // ── Step 4: 총 길이를 목표 duration 초에 정확히 맞추기 ──
+  // 모든 삽입이 끝난 뒤 한 번에 중간 행을 균등 조정한다.
+  // 첫 2행(인트로)·마지막 3행(복귀)은 건드리지 않는다.
+  (function normaliseDuration() {
+    const GUARD_HEAD = 2;
+    const GUARD_TAIL = 3;
+    const mid = tlRows.slice(GUARD_HEAD, tlRows.length - GUARD_TAIL);
+    if (!mid.length) return;
+
+    let surplus = +(tlRows.reduce((s, r) => s + r.duration, 0) - duration).toFixed(2);
+
+    for (let pass = 0; pass < 3 && Math.abs(surplus) > 0.05; pass++) {
+      if (surplus > 0) {
+        // 초과분 → 중간 행에서 균등 차감 (하한 0.1 s)
+        for (let i = 0; i < mid.length && surplus > 0.01; i++) {
+          const cut = Math.min(
+            +((surplus / (mid.length - i)).toFixed(2)),
+            +(mid[i].duration - 0.1).toFixed(2)
+          );
+          if (cut > 0.01) {
+            mid[i].duration = Math.max(0.1, +(mid[i].duration - cut).toFixed(1));
+            surplus = +(surplus - cut).toFixed(2);
+          }
+        }
+      } else {
+        // 부족분 → 중간 행에 균등 추가 (상한 0.8 s)
+        for (let i = 0; i < mid.length && surplus < -0.01; i++) {
+          const add = Math.min(
+            +((-surplus) / (mid.length - i)).toFixed(2),
+            +(0.8 - mid[i].duration).toFixed(2)
+          );
+          if (add > 0.01) {
+            mid[i].duration = Math.min(0.8, +(mid[i].duration + add).toFixed(1));
+            surplus = +(surplus + add).toFixed(2);
+          }
+        }
+      }
+    }
+  })();
 
   renderTLRows();
   const nNote  = nIds.length ? ` + 생성 포즈 ${nIds.length}종` : '';
