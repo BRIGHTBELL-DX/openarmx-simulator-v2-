@@ -861,6 +861,7 @@ function renderTLRows() {
   container.appendChild(frag);
   updateTLTotal();
   renderTLVisBar();
+  _saveSession();
 }
 
 // ────────────────────────────────────────────────────────────
@@ -1733,6 +1734,7 @@ window.saveComposite = function() {
   // 전체 재빌드 대신 새 옵션만 기존 select에 추가 (성능)
   [newId, symId].filter(Boolean).forEach(_appendPoseOptToSelects);
   _updateReqPoseSelect();
+  _saveSession();       // 생성 포즈 세션 저장
   const symNote = symId ? ` + 대칭 ${symId} 자동 생성` : '';
   setStatus(`✓ ${newId}${symNote}`);
   switchTab('custom');
@@ -1973,6 +1975,7 @@ window.deleteCustomPose = function(id) {
   renderCustomPoseList();
   renderReqPoses();
   _updateReqPoseSelect();
+  _saveSession();       // 생성 포즈 삭제 세션 저장
   setStatus(symId ? `${id} + ${symId} 삭제됨` : `${id} 삭제됨`);
 };
 
@@ -2785,13 +2788,92 @@ function animate() {
 
 window.addEventListener('resize', resizeRenderer);
 
+// ════════════════════════════════════════════════════════════
+//  세션 스토리지 — F5 새로고침 후 데이터 유지
+//  (탭 닫기 / 세션 종료 시 자동 소멸)
+// ════════════════════════════════════════════════════════════
+const _SS_TL  = 'oax_sess_tl';   // tlRows JSON
+const _SS_NP  = 'oax_sess_np';   // N-series 포즈
+const _SS_REQ = 'oax_sess_req';  // 필수 포즈·구
+
+function _saveSession() {
+  try {
+    sessionStorage.setItem(_SS_TL, JSON.stringify(tlRows));
+    // N-series 포즈 저장
+    const np = {};
+    Object.keys(CUSTOM_POSE_META).forEach(id => {
+      np[id] = { angles: POSE_DB[id], meta: CUSTOM_POSE_META[id] };
+    });
+    sessionStorage.setItem(_SS_NP, JSON.stringify(np));
+    // 필수 포즈·구 저장
+    sessionStorage.setItem(_SS_REQ, JSON.stringify({ reqPoses, reqPhrases }));
+  } catch(e) { /* 스토리지 용량 초과 등 무시 */ }
+}
+
+/** 복원 성공 시 true 반환 */
+function _restoreSession() {
+  try {
+    let restored = false;
+
+    // 1. N-series 포즈 먼저 복원 (tlRows에서 참조하기 때문)
+    const npStr = sessionStorage.getItem(_SS_NP);
+    if (npStr) {
+      const np = JSON.parse(npStr);
+      Object.entries(np).forEach(([id, { angles, meta }]) => {
+        POSE_DB[id]          = angles;
+        CUSTOM_POSE_META[id] = meta;
+        if (!POSE_IDS.includes(id)) POSE_IDS.push(id);
+      });
+      if (Object.keys(np).length) {
+        _invalidateTLCache();
+        renderCustomPoseList();
+        _updateReqPoseSelect();
+      }
+    }
+
+    // 2. 타임라인 복원
+    const tlStr = sessionStorage.getItem(_SS_TL);
+    if (tlStr) {
+      const rows = JSON.parse(tlStr);
+      if (Array.isArray(rows) && rows.length) {
+        // 유효한 포즈만 포함된 행 필터 (N-포즈 삭제 후 탭 닫은 경우 대비)
+        tlRows = rows.filter(r =>
+          r._type === 'phrase' ? true : POSE_DB[r.pose_id]
+        );
+        if (tlRows.length) {
+          renderTLRows();
+          restored = true;
+        }
+      }
+    }
+
+    // 3. 필수 포즈·구 복원
+    const reqStr = sessionStorage.getItem(_SS_REQ);
+    if (reqStr) {
+      const { reqPoses: rp, reqPhrases: rph } = JSON.parse(reqStr);
+      reqPoses   = (rp  || []).filter(id => POSE_DB[id]);
+      reqPhrases = (rph || []).filter(id => PHRASE_DB[id]);
+      renderReqPoses();
+      renderReqPhraseChips();
+    }
+
+    return restored;
+  } catch(e) {
+    console.warn('[세션 복원 실패]', e);
+    return false;
+  }
+}
+
 // 초기화
 renderPoseList();
 renderCustomPoseList();
 _updateReqPoseSelect();
 renderModulePanel();
-tlRows = [{ pose_id: 'P-001', duration: 0.5 }, { pose_id: 'P-002', duration: 0.5 }];
-renderTLRows();
+// 세션 복원 — 없으면 기본 2행으로 시작
+if (!_restoreSession()) {
+  tlRows = [{ pose_id: 'P-001', duration: 0.5 }, { pose_id: 'P-002', duration: 0.5 }];
+  renderTLRows();
+}
 updateFK(q);
 resizeRenderer();
 animate();
