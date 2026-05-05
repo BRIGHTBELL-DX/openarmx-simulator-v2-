@@ -187,6 +187,32 @@ body {
     border-left:none;
     border-top:1px solid #181830;
     overflow:hidden;
+    min-height:0;
+  }
+
+  /* 모바일: 모든 탭 패널을 단일 세로 스크롤 컨테이너로
+     — flex:1/overflow:hidden 구조 대신 자연스럽게 흘러내리며 스크롤 */
+  .tab-pane.active {
+    overflow-y: auto !important;
+    flex: 1 !important;
+  }
+
+  /* 타임라인 탭 — 내부 고정 섹션들이 스크롤에 포함되도록 */
+  #tab-timeline {
+    overflow-y: auto !important;
+  }
+  /* tl-rows: flex:1 해제 → 콘텐츠 높이만큼만 차지, 전체 탭이 스크롤 */
+  #tl-rows {
+    flex: none !important;
+    overflow-y: visible !important;
+    min-height: 80px;
+  }
+  /* 비주얼 타임라인 바 높이 제한 */
+  #tl-vis-wrap { max-height: 70px; overflow: hidden; }
+
+  /* 모듈·동작선언·기존포즈 탭도 스크롤 허용 */
+  #tab-modules, #tab-phrases, #tab-poses, #tab-custom {
+    overflow-y: auto !important;
   }
 
   /* 재생바 */
