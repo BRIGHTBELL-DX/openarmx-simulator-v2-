@@ -199,8 +199,20 @@ body {
   #time-lbl { font-size:11px; min-width:70px; }
   .pb-btn { padding:5px 9px; font-size:11px; }
 
-  /* 탭 버튼 터치 영역 확보 */
-  .tab-btn { padding:12px 4px; font-size:12px; }
+  /* 탭 가로 스크롤 (5개 탭이 좁은 화면에서 슬라이드) */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;       /* Firefox */
+  }
+  .tabs::-webkit-scrollbar { display:none; } /* Chrome/Safari */
+  .tab-btn {
+    flex: none;
+    min-width: 68px;
+    padding: 12px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
 
   /* 포즈 카드 */
   .pose-card { padding:8px 12px; }

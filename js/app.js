@@ -2909,39 +2909,39 @@ const GUIDE_STEPS = [
   },
   {
     target: () => document.querySelectorAll('.tab-btn')[0],
+    icon: '🎬',
+    title: '① 타임라인',
+    desc: '가장 핵심 탭입니다.\nAI로 댄스 시퀀스를 자동 생성하거나\n포즈를 직접 추가·편집할 수 있어요.\n시간 기반 또는 음악 파일 기반 생성을\n모두 지원합니다.',
+  },
+  {
+    target: () => document.querySelectorAll('.tab-btn')[1],
+    icon: '💡',
+    title: '② 동작 선언',
+    desc: '미리 정의된 동작 구(Phrase) 라이브러리입니다.\n▶ 버튼으로 3D 뷰어에서 즉시 미리보기,\n✎ 편집으로 포즈·시간 수정,\n신규 동작 추가도 가능합니다.',
+  },
+  {
+    target: () => document.querySelectorAll('.tab-btn')[2],
     icon: '📚',
-    title: '① 기존 포즈',
-    desc: '[기존 포즈] 탭에는 466개의 사전 정의된\n포즈 데이터베이스가 있습니다.\n카드를 클릭하면 3D 뷰어에서\n즉시 미리보기 할 수 있어요.',
+    title: '③ 기존 포즈',
+    desc: '466개의 사전 정의된 포즈 DB입니다.\n카드를 클릭하면 3D 뷰어에서\n즉시 미리보기 할 수 있고\n타임라인에 직접 추가할 수 있어요.',
   },
   {
     target: () => document.querySelectorAll('.tab-btn')[3],
     icon: '🦾',
-    title: '② 모듈 조합',
-    desc: '[모듈 조합] 탭에서 왼팔·오른팔 M-xxx 모듈을\n각각 선택해 새로운 포즈를 만들 수 있어요.\n저·중·고 필터로 활동량별 모듈을 고르고\n충돌 여부를 실시간으로 확인할 수 있어요.',
+    title: '④ 모듈 조합',
+    desc: '왼팔·오른팔 M-xxx 모듈을 각각 선택해\n새로운 포즈를 직접 만들 수 있어요.\n저·중·고 필터로 활동량별 모듈을 고르고\n실시간 충돌 여부도 확인할 수 있습니다.',
   },
   {
-    target: () => document.querySelectorAll('.tab-btn')[1],
+    target: () => document.querySelectorAll('.tab-btn')[4],
     icon: '✨',
-    title: '③ 생성 포즈',
-    desc: '모듈 조합 후 [포즈 저장]을 누르면\n[생성 포즈] 탭에 N-001부터 자동 저장됩니다.\n저장된 포즈는 수정·삭제가 가능하고\n타임라인 필수 포즈로도 활용할 수 있어요.',
-  },
-  {
-    target: () => document.getElementById('gen-btn'),
-    icon: '🎵',
-    title: '④ AI 댄스 시퀀스 생성',
-    desc: '[타임라인] 탭에서 시간 또는 음악 파일 기반으로\nAI 댄스 시퀀스를 자동 생성할 수 있어요.\n기존 포즈 466개 + 생성 포즈 전체가\n생성 풀에 자동 포함됩니다.',
+    title: '⑤ 생성 포즈',
+    desc: '모듈 조합 후 [포즈 저장]을 누르면\nN-001부터 자동 저장됩니다.\n저장된 포즈는 수정·삭제가 가능하고\nAI 생성 풀 및 타임라인 필수 포즈로\n활용할 수 있어요.',
   },
   {
     target: () => document.querySelector('.apply-btn[onclick*="applyTimeline"]'),
     icon: '▶',
-    title: '⑤ 적용 & 재생',
-    desc: '[✓ 적용 & 재생]을 누르면\n3D 뷰어에서 시퀀스가 바로 재생됩니다.\n음악 싱크 재생은 물론\nJSON · YAML 내보내기도 지원합니다.',
-  },
-  {
-    target: () => document.getElementById('color-picker-toggle'),
-    icon: '🎨',
-    title: '⑥ 색상 & 스킨',
-    desc: '[🎨] 버튼으로 배경 및 로봇 스킨을\n자유롭게 바꿀 수 있어요.\n왼팔·오른팔·몸통·손 색상을\n개별 또는 프리셋으로 설정할 수 있습니다.\n\n이제 직접 사용해 보세요! 🎉',
+    title: '⑥ 적용 & 재생',
+    desc: '[✓ 적용 & 재생]을 누르면\n3D 뷰어에서 시퀀스가 바로 재생됩니다.\n음악 싱크 재생, JSON·YAML 내보내기,\nF5 새로고침 후에도 데이터가 유지됩니다.\n\n이제 직접 사용해 보세요! 🎉',
   },
 ];
 
@@ -3007,11 +3007,12 @@ function _renderGuideStep(step) {
     _guidePos(el, card);
   });
 
-  if (step === 1) switchTab('poses');
-  if (step === 2) switchTab('modules');
-  if (step === 3) switchTab('custom');
-  if (step === 4) switchTab('timeline');
-  if (step === 6) switchTab('playlist');
+  if (step === 1) switchTab('timeline');
+  if (step === 2) switchTab('phrases');
+  if (step === 3) switchTab('poses');
+  if (step === 4) switchTab('modules');
+  if (step === 5) switchTab('custom');
+  if (step === 6) switchTab('timeline');
 }
 
 function showGuide() {
