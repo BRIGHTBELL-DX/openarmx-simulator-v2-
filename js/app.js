@@ -1431,11 +1431,147 @@ window.generateDance = function() {
 };
 
 // ════════════════════════════════════════════════════════════
-//  JSON 가져오기 모달
+//  JSON / YAML 가져오기 모달
 // ════════════════════════════════════════════════════════════
+
+let _pendingImportRows = null;  // 파일에서 파싱된 rows (YAML/JSON)
+
+// YAML 파서 (exportYAML 포맷 전용)
+function _parseYAML(text) {
+  const lines = text.split(/\r?\n/);
+  const jointNames = [];
+  const points = [];
+  let section = null;
+  let curPoint = null;
+  let inPositions = false;
+
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    if (trimmed === 'joint_names:') { section = 'joint_names'; inPositions = false; continue; }
+    if (trimmed === 'points:')      { section = 'points';       inPositions = false; continue; }
+
+    if (section === 'joint_names') {
+      if (trimmed.startsWith('- ')) jointNames.push(trimmed.slice(2).trim());
+      continue;
+    }
+    if (section === 'points') {
+      if (trimmed === '- positions:' || trimmed === 'positions:') {
+        if (curPoint) points.push(curPoint);
+        curPoint = { positions: [], time: 0 };
+        inPositions = true;
+        continue;
+      }
+      if (trimmed.startsWith('time_from_start:')) {
+        inPositions = false;
+        if (curPoint) curPoint.time = parseFloat(trimmed.slice('time_from_start:'.length).trim());
+        continue;
+      }
+      if (inPositions && trimmed.startsWith('- ')) {
+        if (curPoint) curPoint.positions.push(parseFloat(trimmed.slice(2).trim()));
+        continue;
+      }
+    }
+  }
+  if (curPoint) points.push(curPoint);
+  return { jointNames, points };
+}
+
+// YAML → tlRows 변환 (POSE_DB 매칭 → 실패 시 N-YML 포즈 자동 생성)
+const _JNAME_TO_KEY = {
+  openarmx_left_joint1:'L1',  openarmx_left_joint2:'L2',
+  openarmx_left_joint3:'L3',  openarmx_left_joint4:'L4',
+  openarmx_left_joint5:'L5',  openarmx_left_joint6:'L6',
+  openarmx_left_joint7:'L7',
+  openarmx_right_joint1:'R1', openarmx_right_joint2:'R2',
+  openarmx_right_joint3:'R3', openarmx_right_joint4:'R4',
+  openarmx_right_joint5:'R5', openarmx_right_joint6:'R6',
+  openarmx_right_joint7:'R7',
+};
+const _CMP_KEYS = ['L1','L2','L3','L4','L5','L6','L7','R1','R2','R3','R4','R5','R6','R7'];
+
+function _yamlToRows(yamlText) {
+  const { jointNames, points } = _parseYAML(yamlText);
+  if (!points.length) throw new Error('points 항목을 찾을 수 없습니다');
+
+  const keyMap = jointNames.map(n => _JNAME_TO_KEY[n] || null);
+  const TOL = 0.015;
+  let nCounter = 1;
+  const rows = [];
+
+  for (let pi = 0; pi < points.length; pi++) {
+    const pt = points[pi];
+    const angles = { L_grip: 0, R_grip: 0 };
+    keyMap.forEach((key, idx) => {
+      if (key && pt.positions[idx] !== undefined) angles[key] = +pt.positions[idx].toFixed(4);
+    });
+
+    // POSE_DB 매칭 시도
+    let matchId = null;
+    for (const [id, pa] of Object.entries(POSE_DB)) {
+      if (_CMP_KEYS.every(k => Math.abs((pa[k] || 0) - (angles[k] || 0)) <= TOL)) {
+        matchId = id; break;
+      }
+    }
+
+    // 매칭 실패 → N-YML 포즈 생성
+    if (!matchId) {
+      matchId = `N-YML-${String(nCounter++).padStart(3,'0')}`;
+      POSE_DB[matchId] = { ...angles };
+      CUSTOM_POSE_META[matchId] = { label: matchId, createdAt: new Date().toISOString() };
+      if (!POSE_IDS.includes(matchId)) POSE_IDS.push(matchId);
+    }
+
+    const next = points[pi + 1];
+    const dur  = next ? Math.max(0.1, +((next.time - pt.time).toFixed(2))) : 0.5;
+    rows.push({ pose_id: matchId, duration: dur });
+  }
+
+  if (!rows.length) throw new Error('변환된 행이 없습니다');
+  return rows;
+}
+
+// 파일 선택 핸들러 (.json / .yaml / .yml)
+window.handleImportFile = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const nameEl = document.getElementById('import-filename');
+  const errEl  = document.getElementById('import-err');
+  errEl.textContent = '';
+  _pendingImportRows = null;
+
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const text = ev.target.result.trim();
+    const isYAML = /\.(yaml|yml)$/i.test(file.name);
+
+    if (isYAML) {
+      try {
+        const rows = _yamlToRows(text);
+        _pendingImportRows = rows;
+        nameEl.textContent = `✓ ${file.name}  (${rows.length}개 포즈 준비됨)`;
+        document.getElementById('import-textarea').value = '';
+      } catch(e) {
+        errEl.textContent = '⚠ YAML 파싱 오류: ' + e.message;
+        nameEl.textContent = '';
+      }
+    } else {
+      // JSON 파일 → textarea에 내용 채우기
+      document.getElementById('import-textarea').value = text;
+      nameEl.textContent = file.name;
+    }
+  };
+  reader.readAsText(file);
+};
+
 window.showImportModal = function() {
   document.getElementById('import-textarea').value = '';
   document.getElementById('import-err').textContent = '';
+  document.getElementById('import-filename').textContent = '';
+  const fi = document.getElementById('import-file-input');
+  if (fi) fi.value = '';
+  _pendingImportRows = null;
   document.getElementById('import-modal-bg').classList.add('open');
   setTimeout(() => document.getElementById('import-textarea').focus(), 60);
 };
@@ -1455,10 +1591,18 @@ document.getElementById('import-modal-bg').addEventListener('click', e => {
 
 window.confirmImport = function() {
   const errEl = document.getElementById('import-err');
-  const text  = document.getElementById('import-textarea').value.trim();
   errEl.textContent = '';
 
-  if (!text) { errEl.textContent = '⚠ JSON을 입력하세요.'; return; }
+  // ── YAML 파일이 이미 파싱된 경우 바로 처리 ──────────────
+  if (_pendingImportRows) {
+    const rows = _pendingImportRows;
+    _pendingImportRows = null;
+    _doImportRows(rows, 'YAML');
+    return;
+  }
+
+  const text = document.getElementById('import-textarea').value.trim();
+  if (!text) { errEl.textContent = '⚠ JSON을 입력하거나 파일을 선택하세요.'; return; }
 
   let data;
   try { data = JSON.parse(text); }
@@ -1510,6 +1654,13 @@ window.confirmImport = function() {
   // duration 이상값 클램프
   rows = rows.map(r => ({ ...r, duration: Math.min(30, Math.max(0.1, r.duration)) }));
 
+  _doImportRows(rows, 'JSON');
+};
+
+// JSON/YAML 공통 임포트 처리 (rows → tlRows 적용)
+function _doImportRows(rows, srcLabel) {
+  srcLabel = srcLabel || '파일';
+
   // 이전 재생 캐시 초기화 (구 동작 재생 방지)
   stopAnim();
   allKeyframes  = [];
@@ -1523,10 +1674,14 @@ window.confirmImport = function() {
   renderTLRows();
   hideImportModal();
   switchTab('timeline');
-  setStatus(`✓ JSON ${rows.length}개 포즈 불러옴 — [✓ 적용 & 재생]을 눌러주세요`);
+  setStatus(`✓ ${srcLabel} ${rows.length}개 포즈 불러옴 — [✓ 적용 & 재생]을 눌러주세요`);
   document.getElementById('gen-status').textContent =
-    `✓ JSON으로 ${rows.length}개 포즈 불러옴.`;
-  _setApplyBtnActive(true);   // 적용 & 재생 버튼 활성화 (유저가 직접 누르도록)
+    `✓ ${srcLabel}으로 ${rows.length}개 포즈 불러옴.`;
+  _setApplyBtnActive(true);
+  if (srcLabel === 'YAML') {
+    renderCustomPoseList();   // N-YML 포즈 목록 갱신
+    _saveSession();
+  }
 };
 
 window.exportJSON = function() {

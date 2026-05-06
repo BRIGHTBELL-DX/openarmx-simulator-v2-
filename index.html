@@ -293,18 +293,30 @@
 }
 </script>
 
-<script type="module" src="js/app.js?v=20260506d"></script>
+<script type="module" src="js/app.js?v=20260506e"></script>
 
 <!-- JSON 가져오기 모달 -->
 <div id="import-modal-bg">
   <div id="import-modal">
-    <h3>📋 JSON으로 포즈 시퀀스 가져오기</h3>
-    <p>아래 형식 중 하나를 붙여넣으세요.<br>
+    <h3>📋 타임라인 가져오기</h3>
+
+    <!-- 파일 업로드 영역 -->
+    <div id="import-file-area">
+      <label class="import-file-btn" for="import-file-input">📂 파일 선택 <span style="opacity:.6;font-size:11px;">(.json / .yaml / .yml)</span></label>
+      <input type="file" id="import-file-input" accept=".json,.yaml,.yml" style="display:none"
+             onchange="handleImportFile(this)">
+      <span id="import-filename"></span>
+    </div>
+
+    <!-- 구분선 -->
+    <div id="import-divider"><span>또는 JSON 직접 붙여넣기</span></div>
+
+    <p style="margin:0 0 6px;font-size:11px;color:#8ab;">
       <code style="color:#4af">[{"pose_id":"P-001","duration":0.5}, ...]</code><br>
       <code style="color:#4af">[{"time":0.0,"pose_id":"P-001"}, ...]</code><br>
       <code style="color:#4af">["P-001","P-002", ...]</code>
     </p>
-    <textarea id="import-textarea" placeholder='[{"pose_id":"P-001","duration":0.5},{"pose_id":"P-010","duration":0.6}]'></textarea>
+    <textarea id="import-textarea" placeholder='[{"pose_id":"P-001","duration":0.5},...]'></textarea>
     <div id="import-err"></div>
     <div class="import-actions">
       <button id="import-cancel" onclick="hideImportModal()">취소</button>
