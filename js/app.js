@@ -838,12 +838,33 @@ function renderTLRows() {
     div.className = 'tl-row';
     div.innerHTML = `
       <span class="tl-handle" title="드래그로 순서 변경">⠿</span>
-      <select class="tl-pose-sel" onchange="tlRows[${i}].pose_id=this.value;updateTLTotal();renderTLVisBar()">${optsHtml}</select>
-      <input class="tl-dur-inp" type="number" min="0.1" max="30" step="0.1" value="${row.duration}"
-        onchange="tlRows[${i}].duration=+parseFloat(this.value).toFixed(1);renderTLRows()">
+      <select class="tl-pose-sel">${optsHtml}</select>
+      <input class="tl-dur-inp" type="number" min="0.1" max="30" step="0.1" value="${row.duration}">
       <span class="tl-cum" title="시작 시각">${startSec.toFixed(1)}s</span>
       <button class="tl-btn" style="color:#a44;" onclick="delTLRow(${i})" title="삭제">✕</button>
     `;
+
+    // 포즈 변경 → tlRows 업데이트 + 버튼 활성화
+    const poseSelEl = div.querySelector('.tl-pose-sel');
+    if (poseSelEl) {
+      poseSelEl.addEventListener('change', function() {
+        tlRows[i].pose_id = this.value;
+        updateTLTotal();
+        renderTLVisBar();
+        _setApplyBtnActive(true);
+        _saveSession();
+      });
+    }
+
+    // 시간 변경 → tlRows 업데이트 + 버튼 활성화
+    const durInpEl = div.querySelector('.tl-dur-inp');
+    if (durInpEl) {
+      durInpEl.addEventListener('change', function() {
+        tlRows[i].duration = +parseFloat(this.value).toFixed(1);
+        renderTLRows();
+        _setApplyBtnActive(true);
+      });
+    }
 
     // 행 클릭 → 포즈 미리보기 (컨트롤 클릭 제외)
     div.addEventListener('click', e => {
@@ -883,6 +904,7 @@ function renderTLRows() {
       tlRows.splice(i, 0, moved);
       _dragIdx = null;
       renderTLRows();
+      _setApplyBtnActive(true);
     });
 
     const sel = div.querySelector('.tl-pose-sel');
@@ -1014,6 +1036,7 @@ window.addTLRow = function(poseId = 'P-001', duration = 0.5) {
 window.delTLRow = function(i) {
   tlRows.splice(i, 1);
   renderTLRows();
+  _setApplyBtnActive(tlRows.length > 0);
 };
 
 window.moveTLRow = function(i, dir) {
@@ -1021,6 +1044,7 @@ window.moveTLRow = function(i, dir) {
   if (j < 0 || j >= tlRows.length) return;
   [tlRows[i], tlRows[j]] = [tlRows[j], tlRows[i]];
   renderTLRows();
+  _setApplyBtnActive(true);
 };
 
 window.clearTL = function() {
@@ -1514,7 +1538,8 @@ window.exportJSON = function() {
 };
 
 window.exportYAML = function() {
-  if (!allKeyframes.length) { alert('재생 목록이 비어 있습니다. 먼저 JSON 타임라인을 적용하세요.'); return; }
+  const exportKfs = tlRows.length ? tlRowsToKFs() : allKeyframes;
+  if (!exportKfs.length) { alert('타임라인이 비어 있습니다.'); return; }
 
   const jointNames = [
     'openarmx_left_joint1','openarmx_left_joint2','openarmx_left_joint3','openarmx_left_joint4',
@@ -1528,7 +1553,7 @@ window.exportYAML = function() {
   jointNames.forEach(n => { yaml += `- ${n}\n`; });
   yaml += 'points:\n';
 
-  allKeyframes.forEach(kf => {
+  exportKfs.forEach(kf => {
     const angles = POSE_DB[kf.pose_id];
     if (!angles) return;
     yaml += '- positions:\n';
