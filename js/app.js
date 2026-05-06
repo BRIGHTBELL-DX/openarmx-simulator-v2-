@@ -770,6 +770,7 @@ function _setApplyBtnActive(active) {
   btn.disabled = !active;
   btn.style.opacity = active ? '' : '0.38';
   btn.title = active ? '' : '생성하기 또는 음악 파일을 추가하면 활성화됩니다';
+  btn.classList.toggle('ready', !!active);  // pulse 애니메이션용 클래스
 }
 
 const POSE_IDS = Object.keys(POSE_DB); // P-001 ~ P-168
@@ -1037,6 +1038,7 @@ window.clearTL = function() {
                   R1:0,R2:0,R3:-0.26,R4:0.5,R5:0,R6:0,R7:0,R_grip:0 };
   Object.assign(q, _HOME);
   updateFK(_HOME);
+  _setApplyBtnActive(false);  // 타임라인이 비었으므로 버튼 비활성화
   renderTLRows();
   renderKFList();
   _saveSession();
@@ -1495,10 +1497,11 @@ window.confirmImport = function() {
   tlRows = rows;
   renderTLRows();
   hideImportModal();
-  setStatus(`✓ JSON 가져오기 완료 — ${rows.length}개 포즈`);
+  switchTab('timeline');
+  setStatus(`✓ JSON ${rows.length}개 포즈 불러옴 — [✓ 적용 & 재생]을 눌러주세요`);
   document.getElementById('gen-status').textContent =
     `✓ JSON으로 ${rows.length}개 포즈 불러옴.`;
-  applyTimeline();   // 자동 적용 & 재생 (음악 연결된 경우 싱크 포함)
+  _setApplyBtnActive(true);   // 적용 & 재생 버튼 활성화 (유저가 직접 누르도록)
 };
 
 window.exportJSON = function() {

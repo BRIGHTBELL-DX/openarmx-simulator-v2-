@@ -127,6 +127,14 @@ body {
 }
 .apply-btn:hover { background:var(--c-primary-h); }
 .apply-btn:disabled { opacity:.45; cursor:not-allowed; }
+/* JSON 로드 후 버튼 활성화 시 시선 유도 펄스 */
+.apply-btn.ready {
+  animation: apply-pulse 1.8s ease-in-out 3;
+}
+@keyframes apply-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(74,144,226,0); }
+  50%      { box-shadow: 0 0 0 7px rgba(74,144,226,0.5); }
+}
 .err-msg { color:#f64; font-size:11px; margin-top:5px; min-height:16px; }
 
 /* 파싱된 키프레임 목록 */
