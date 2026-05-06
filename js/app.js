@@ -1668,11 +1668,23 @@ window.confirmImport = function() {
   }
 
   const text = document.getElementById('import-textarea').value.trim();
-  if (!text) { errEl.textContent = '⚠ JSON을 입력하거나 파일을 선택하세요.'; return; }
+  if (!text) { errEl.textContent = '⚠ JSON 또는 YAML을 입력하거나 파일을 선택하세요.'; return; }
+
+  // ── YAML 감지: joint_names: 또는 points: 로 시작하면 YAML로 처리 ──
+  const looksLikeYAML = /^(joint_names|points)\s*:/m.test(text);
+  if (looksLikeYAML) {
+    try {
+      const rows = _yamlToRows(text);
+      _doImportRows(rows, 'YAML');
+    } catch(e) {
+      errEl.textContent = '⚠ YAML 파싱 오류: ' + e.message;
+    }
+    return;
+  }
 
   let data;
   try { data = JSON.parse(text); }
-  catch(e) { errEl.textContent = '⚠ JSON 파싱 오류: ' + e.message; return; }
+  catch(e) { errEl.textContent = '⚠ 파싱 오류 (JSON/YAML 형식을 확인하세요): ' + e.message; return; }
 
   if (!Array.isArray(data) || !data.length) {
     errEl.textContent = '⚠ 배열 형식이 필요합니다: [ ... ]';

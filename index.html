@@ -293,7 +293,7 @@
 }
 </script>
 
-<script type="module" src="js/app.js?v=20260506e"></script>
+<script type="module" src="js/app.js?v=20260506f"></script>
 
 <!-- JSON 가져오기 모달 -->
 <div id="import-modal-bg">
@@ -309,12 +309,12 @@
     </div>
 
     <!-- 구분선 -->
-    <div id="import-divider"><span>또는 JSON 직접 붙여넣기</span></div>
+    <div id="import-divider"><span>또는 텍스트 직접 붙여넣기</span></div>
 
     <p style="margin:0 0 6px;font-size:11px;color:#8ab;">
-      <code style="color:#4af">[{"pose_id":"P-001","duration":0.5}, ...]</code><br>
-      <code style="color:#4af">[{"time":0.0,"pose_id":"P-001"}, ...]</code><br>
-      <code style="color:#4af">["P-001","P-002", ...]</code>
+      <code style="color:#4af">[{"pose_id":"P-001","duration":0.5}, ...]</code> JSON<br>
+      <code style="color:#4af">[{"time":0.0,"pose_id":"P-001"}, ...]</code> JSON<br>
+      <code style="color:#4af">joint_names:\n- ...\npoints:\n- ...</code> YAML
     </p>
     <textarea id="import-textarea" placeholder='[{"pose_id":"P-001","duration":0.5},...]'></textarea>
     <div id="import-err"></div>
