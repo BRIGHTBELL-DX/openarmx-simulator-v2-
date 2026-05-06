@@ -1523,6 +1523,18 @@ function _parseYAML(text) {
       continue;
     }
     if (section === 'points') {
+      // ── 인라인 배열 형식: - positions: [v1, v2, ...]  ──────────
+      const inlineMatch = trimmed.match(/^-?\s*positions:\s*\[([^\]]+)\]/);
+      if (inlineMatch) {
+        if (curPoint) points.push(curPoint);
+        curPoint = {
+          positions: inlineMatch[1].split(',').map(s => parseFloat(s.trim())),
+          time: 0
+        };
+        inPositions = false;
+        continue;
+      }
+      // ── 블록 형식: - positions: (다음 줄에 - val) ──────────────
       if (trimmed === '- positions:' || trimmed === 'positions:') {
         if (curPoint) points.push(curPoint);
         curPoint = { positions: [], time: 0 };
