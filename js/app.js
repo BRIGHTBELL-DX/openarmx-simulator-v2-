@@ -1031,6 +1031,7 @@ function updateTLTotal() {
 window.addTLRow = function(poseId = 'P-001', duration = 0.5) {
   tlRows.push({ pose_id: poseId, duration });
   renderTLRows();
+  _setApplyBtnActive(true);
 };
 
 window.delTLRow = function(i) {
