@@ -619,6 +619,7 @@ function nearestPoseLabel(t, tl) {
 // ════════════════════════════════════════════════════════════
 let isPlaying = false, isLooping = true;
 let startWall = 0, pauseOffset = 0;
+let _loopIteration = 0;   // 루프 반복 카운터 (음악 재시작 감지용)
 const scrubber = document.getElementById('scrubber');
 const bgAudio  = document.getElementById('bg-audio');
 let musicBlobUrl = null;
@@ -641,6 +642,7 @@ window.playAnim = function() {
   if (!activeTimeline().length) { alert('타임라인에서 포즈를 추가하고 [✓ 적용 & 재생]을 눌러주세요.'); return; }
   startWall = performance.now() - pauseOffset * 1000;
   isPlaying = true;
+  _loopIteration = Math.floor(pauseOffset / (_playDur || 1));  // 현재 루프 카운터 초기화
   _syncPlayBtns();
   _audioPlay(pauseOffset);
 };
@@ -1021,9 +1023,18 @@ window.moveTLRow = function(i, dir) {
 };
 
 window.clearTL = function() {
-  tlRows = [];
-  _tlTotalDur = 0;
+  stopAnim();           // 재생 중단 + 오디오 정지 + pauseOffset 리셋
+  tlRows        = [];
+  _tlTotalDur   = 0;
+  allKeyframes  = [];   // 재생 캐시 전체 초기화
+  _playTimeline = [];
+  _playDur      = 0;
+  selectedTID   = null;
+  _kfToTLRowIdx = [];
+  _loopIteration = 0;
   renderTLRows();
+  renderKFList();
+  _saveSession();
 };
 
 function tlRowsToKFs() {
@@ -1467,13 +1478,22 @@ window.confirmImport = function() {
   // duration 이상값 클램프
   rows = rows.map(r => ({ ...r, duration: Math.min(30, Math.max(0.1, r.duration)) }));
 
+  // 이전 재생 캐시 초기화 (구 동작 재생 방지)
+  stopAnim();
+  allKeyframes  = [];
+  _playTimeline = [];
+  _playDur      = 0;
+  selectedTID   = null;
+  _kfToTLRowIdx = [];
+  _loopIteration = 0;
+
   tlRows = rows;
   renderTLRows();
   hideImportModal();
-  switchTab('timeline');
   setStatus(`✓ JSON 가져오기 완료 — ${rows.length}개 포즈`);
   document.getElementById('gen-status').textContent =
-    `✓ JSON으로 ${rows.length}개 포즈 불러옴. 수정 후 적용하세요.`;
+    `✓ JSON으로 ${rows.length}개 포즈 불러옴.`;
+  applyTimeline();   // 자동 적용 & 재생 (음악 연결된 경우 싱크 포함)
 };
 
 window.exportJSON = function() {
@@ -2780,6 +2800,12 @@ function animate() {
       try {
         let t = (performance.now() - startWall) / 1000;
         if (isLooping) {
+          // 루프 랩 감지 → 오디오 처음부터 재시작
+          const curIter = Math.floor(t / d);
+          if (curIter > _loopIteration) {
+            _loopIteration = curIter;
+            _audioPlay(0);
+          }
           t = t % d;
         } else if (t >= d) {
           t = d;
