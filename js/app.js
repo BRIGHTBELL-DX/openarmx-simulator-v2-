@@ -1593,9 +1593,21 @@ const _JNAME_TO_KEY = {
 };
 const _CMP_KEYS = ['L1','L2','L3','L4','L5','L6','L7','R1','R2','R3','R4','R5','R6','R7'];
 
+function _clearNYmlPoses() {
+  Object.keys(CUSTOM_POSE_META).filter(id => id.startsWith('N-YML-')).forEach(id => {
+    delete POSE_DB[id];
+    delete CUSTOM_POSE_META[id];
+    const idx = POSE_IDS.indexOf(id);
+    if (idx !== -1) POSE_IDS.splice(idx, 1);
+  });
+}
+
 function _yamlToRows(yamlText) {
   const { jointNames, points } = _parseYAML(yamlText);
   if (!points.length) throw new Error('points 항목을 찾을 수 없습니다');
+
+  // 이전 YAML import에서 생성된 N-YML 포즈 초기화 (오염 방지)
+  _clearNYmlPoses();
 
   const keyMap = jointNames.map(n => _JNAME_TO_KEY[n] || null);
   const TOL = 0.015;
@@ -2346,8 +2358,11 @@ function renderCustomPoseList() {
     const card = document.createElement('div');
     card.className = 'custom-card';
     card.id = `cc-${id}`;
-    const lLabel  = meta.lMod || '—';
-    const rLabel  = meta.rMod || '—';
+    const _fmtAngle = v => (v >= 0 ? '+' : '') + (+v).toFixed(2);
+    const lLabel = meta.lMod || (['L1','L2','L3','L4']
+      .map(k => `${k}:${_fmtAngle(angles[k] ?? 0)}`).join(' '));
+    const rLabel = meta.rMod || (['R1','R2','R3','R4']
+      .map(k => `${k}:${_fmtAngle(angles[k] ?? 0)}`).join(' '));
     const symBadge = meta.mirrorId
       ? `<span style="font-size:9px;color:#6f6;background:#0d1d0d;border:1px solid #2a5a2a;border-radius:3px;padding:1px 4px;margin-left:2px;">↔ ${meta.mirrorId}</span>`
       : '';
