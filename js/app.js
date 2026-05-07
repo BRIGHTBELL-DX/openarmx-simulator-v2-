@@ -1523,24 +1523,48 @@ function _parseYAML(text) {
       continue;
     }
     if (section === 'points') {
-      // ── 인라인 배열 형식: - positions: [v1, v2, ...]  ──────────
-      const inlineMatch = trimmed.match(/^-?\s*positions:\s*\[([^\]]+)\]/);
-      if (inlineMatch) {
+      // ── 새 포인트 시작: - positions: [...]  (인라인, - 있음) ──
+      const inlineLeadMatch = trimmed.match(/^-\s*positions:\s*\[([^\]]+)\]/);
+      if (inlineLeadMatch) {
         if (curPoint) points.push(curPoint);
         curPoint = {
-          positions: inlineMatch[1].split(',').map(s => parseFloat(s.trim())),
+          positions: inlineLeadMatch[1].split(',').map(s => parseFloat(s.trim())),
           time: 0
         };
         inPositions = false;
         continue;
       }
-      // ── 블록 형식: - positions: (다음 줄에 - val) ──────────────
-      if (trimmed === '- positions:' || trimmed === 'positions:') {
+      // ── 현재 포인트에 positions 채우기: positions: [...] (- 없음, 인라인) ──
+      const inlineFillMatch = trimmed.match(/^positions:\s*\[([^\]]+)\]/);
+      if (inlineFillMatch) {
+        if (!curPoint) curPoint = { positions: [], time: 0 };
+        curPoint.positions = inlineFillMatch[1].split(',').map(s => parseFloat(s.trim()));
+        inPositions = false;
+        continue;
+      }
+      // ── 새 포인트 시작: - positions: (블록) ──────────────────────
+      if (trimmed === '- positions:') {
         if (curPoint) points.push(curPoint);
         curPoint = { positions: [], time: 0 };
         inPositions = true;
         continue;
       }
+      // ── 현재 포인트에 positions 채우기: positions: (블록, - 없음) ─
+      if (trimmed === 'positions:') {
+        if (!curPoint) curPoint = { positions: [], time: 0 };
+        curPoint.positions = [];
+        inPositions = true;
+        continue;
+      }
+      // ── 새 포인트 시작: - time_from_start: X ─────────────────────
+      const tsLeadMatch = trimmed.match(/^-\s*time_from_start:\s*([\d.eE+\-]+)/);
+      if (tsLeadMatch) {
+        if (curPoint) points.push(curPoint);
+        curPoint = { positions: [], time: parseFloat(tsLeadMatch[1]) };
+        inPositions = false;
+        continue;
+      }
+      // ── 현재 포인트 시간 설정: time_from_start: X (- 없음) ───────
       if (trimmed.startsWith('time_from_start:')) {
         inPositions = false;
         if (curPoint) curPoint.time = parseFloat(trimmed.slice('time_from_start:'.length).trim());
