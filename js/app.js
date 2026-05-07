@@ -1176,7 +1176,10 @@ window.applyTimeline = function() {
 
   const btn = document.querySelector('.apply-btn[onclick*="applyTimeline"]');
 
+  let _executed = false;
   function _execute() {
+    if (_executed) return;   // canplaythrough + timeout 중복 실행 방지
+    _executed = true;
     const kfs = tlRowsToKFs();
     allKeyframes = kfs;
     const tids = ['1'];
@@ -1198,7 +1201,10 @@ window.applyTimeline = function() {
     switchTab('timeline');
     setStatus(`적용됨 — ${kfs.length}개 포즈, ${d.toFixed(1)}s`);
     if (isLooping) { isLooping = false; _syncPlayBtns(); }
-    if (btn) { btn.textContent = '✓ 적용 & 재생'; btn.disabled = false; btn.style.opacity = ''; }
+    // btn.disabled = false 를 먼저 처리한 뒤 _setApplyBtnActive(false) 호출
+    // (순서가 반대이면 _setApplyBtnActive가 disabled=true로 되돌려
+    //  5초 timeout이 _execute를 재실행하는 버그 발생)
+    if (btn) { btn.textContent = '✓ 적용 & 재생'; btn.style.opacity = ''; }
     _setApplyBtnActive(false);
     playAnim();
   }
