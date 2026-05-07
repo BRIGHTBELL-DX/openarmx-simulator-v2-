@@ -1951,6 +1951,60 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ── 타임라인 / 동작선언 / 기존 포즈 탭 방향키 탐색 ──
+document.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  const activePane = document.querySelector('.tab-pane.active');
+  if (!activePane) return;
+  const tabId = activePane.id;
+
+  if (tabId === 'tab-timeline') {
+    const rows = Array.from(document.querySelectorAll('.tl-row'));
+    if (!rows.length) return;
+    e.preventDefault();
+    const curIdx = rows.findIndex(r => r.classList.contains('preview'));
+    const nextIdx = e.key === 'ArrowDown'
+      ? Math.min(rows.length - 1, curIdx < 0 ? 0 : curIdx + 1)
+      : Math.max(0, curIdx < 0 ? 0 : curIdx - 1);
+    if (nextIdx !== curIdx || curIdx < 0) {
+      previewTLRow(nextIdx);
+      rows[nextIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+  } else if (tabId === 'tab-phrases') {
+    const cards = Array.from(document.querySelectorAll('#phrase-list .ph-card'));
+    if (!cards.length) return;
+    e.preventDefault();
+    const curIdx = cards.findIndex(c => c.classList.contains('ph-focused'));
+    const nextIdx = e.key === 'ArrowDown'
+      ? Math.min(cards.length - 1, curIdx < 0 ? 0 : curIdx + 1)
+      : Math.max(0, curIdx < 0 ? 0 : curIdx - 1);
+    if (nextIdx !== curIdx || curIdx < 0) {
+      cards.forEach(c => c.classList.remove('ph-focused'));
+      cards[nextIdx].classList.add('ph-focused');
+      const phId = cards[nextIdx].id.replace('ph-card-', '');
+      previewPhrase(phId);
+      cards[nextIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+  } else if (tabId === 'tab-poses') {
+    const cards = Array.from(document.querySelectorAll('#pose-list .pose-card'));
+    if (!cards.length) return;
+    e.preventDefault();
+    const curIdx = cards.findIndex(c => c.classList.contains('active'));
+    const nextIdx = e.key === 'ArrowDown'
+      ? Math.min(cards.length - 1, curIdx < 0 ? 0 : curIdx + 1)
+      : Math.max(0, curIdx < 0 ? 0 : curIdx - 1);
+    if (nextIdx !== curIdx || curIdx < 0) {
+      cards[nextIdx].click();
+      cards[nextIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+});
+
 // ── 실시간 충돌 검사 ──
 function _runRealtimeCheck() {
   const risks = _checkStatic(q);

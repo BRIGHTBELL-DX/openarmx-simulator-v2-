@@ -639,6 +639,7 @@ body {
   transition:border-color .15s;
 }
 .ph-card.ph-editing { border-color:#4a90e2; background:#0b1626; }
+.ph-card.ph-focused { border-color:#4af; background:#0a1a2e; }
 .ph-card-header {
   display:flex; align-items:center; gap:6px;
   padding:9px 11px; border-bottom:1px solid #181835;
