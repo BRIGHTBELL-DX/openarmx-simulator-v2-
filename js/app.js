@@ -3192,9 +3192,10 @@ function animate() {
           t = d;
           isPlaying = false;
           _syncPlayBtns();
-          _audioPause();
+          _audioStop();   // 오디오를 처음으로 리셋 (다음 재생 시 소리 안 나는 버그 방지)
         }
-        pauseOffset = t;
+        // 자연 종료 시 pauseOffset을 0으로 리셋 → 다음 ▶ 클릭 시 처음부터 재생
+        pauseOffset = (!isPlaying && t >= d) ? 0 : t;
 
         // ── 인터폴레이션 (캐시된 tl 전달 → 내부에서 activeTimeline() 호출 없음) ──
         const ang = interpolate(t, tl);
