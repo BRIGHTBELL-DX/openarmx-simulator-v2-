@@ -1124,6 +1124,9 @@ window.clearTL = function() {
   selectedTID   = null;
   _kfToTLRowIdx = [];
   _loopIteration = 0;
+  // YAML import로 생성된 N-YML 포즈 정리 (다음 import 시 충돌 방지)
+  _clearNYmlPoses();
+  renderCustomPoseList();
   // 3D 모델을 홈 포지션으로 리셋 (이전 포즈가 남아보이는 시각적 잔상 제거)
   const _HOME = { L1:0,L2:0,L3:0.26,L4:0.5,L5:0,L6:0,L7:0,L_grip:0,
                   R1:0,R2:0,R3:-0.26,R4:0.5,R5:0,R6:0,R7:0,R_grip:0 };
