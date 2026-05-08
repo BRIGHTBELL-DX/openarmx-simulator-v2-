@@ -1901,13 +1901,12 @@ function renderModList(side) {
     card.className = 'mod-card' + (id === sel ? ' selected' : '');
     card.id = `mc-${side}-${id}`;
     const bw = Math.round(mod.activity * 12);
-    const _r = side === 'L' ? _canonToLeft(mod.J) : _canonToRight(mod.J);
-    const _p = side === 'L' ? 'L' : 'R';
-    const _f = v => (v >= 0 ? '+' : '') + v.toFixed(2);
-    const angLabel = [1,2,3,4,5,6,7].map(i => `${_p}${i}:${_f(_r[_p+i])}`).join(' ');
+    // source 레이블: 최초 출처 2개만 표시 (ⓛ=left 원본, ⓡ=right 반전)
+    const srcLabel = mod.sources.slice(0,2)
+      .map(s => s.replace(':L','ⓛ').replace(':R','ⓡ')).join(' ');
     card.innerHTML =
       `<span class="mod-id">${id}</span>` +
-      `<span class="mod-src">${angLabel}</span>` +
+      `<span class="mod-src">${srcLabel}</span>` +
       `<span class="mod-act-bar" style="width:${bw}px"></span>` +
       `<span class="mod-act-num">${mod.activity}</span>`;
     card.onclick = () => {
@@ -1942,19 +1941,8 @@ function _updateCompPanel() {
   const rM = selectedRModule ? CANON_MODULE_DB[selectedRModule] : null;
   const lEl = document.getElementById('comp-l-val');
   const rEl = document.getElementById('comp-r-val');
-  const _fv = v => (v >= 0 ? '+' : '') + v.toFixed(2);
-  if (lEl) {
-    if (lM) {
-      const lr = _canonToLeft(lM.J);
-      lEl.textContent = `L:${selectedLModule}  ` + [1,2,3,4,5,6,7].map(i=>`L${i}:${_fv(lr['L'+i])}`).join(' ');
-    } else { lEl.textContent = '—'; }
-  }
-  if (rEl) {
-    if (rM) {
-      const rr = _canonToRight(rM.J);
-      rEl.textContent = `R:${selectedRModule}  ` + [1,2,3,4,5,6,7].map(i=>`R${i}:${_fv(rr['R'+i])}`).join(' ');
-    } else { rEl.textContent = '—'; }
-  }
+  if (lEl) lEl.textContent = lM ? `L:${selectedLModule}  (${lM.sources[0]}, lv.${lM.activity})` : '—';
+  if (rEl) rEl.textContent = rM ? `R:${selectedRModule}  (${rM.sources[0]}, lv.${rM.activity})` : '—';
 }
 
 function renderModulePanel() {
