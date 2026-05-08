@@ -17,7 +17,7 @@ const PI = Math.PI;
 // ── Canonical Module helpers ─────────────────────────────────
 // canonical = left-arm 기준 { J1..J7 }
 // 미러 규칙: J1,J2,J3,J5,J6,J7 부호 반전 / J4(팔꿈치) 부호 유지
-function _lToCanon(p)    { return {J1:p.L1,J2:p.L2,J3:p.L3,J4:p.L4,J5:p.L5,J6:p.L6,J7:p.L7}; }
+function _lToCanon(p)    { return {J1:p.L1||0,J2:p.L2||0,J3:p.L3||0,J4:p.L4||0,J5:p.L5||0,J6:p.L6||0,J7:p.L7||0}; }
 function _rToCanon(p)    { return {J1:-(p.R1||0),J2:-(p.R2||0),J3:-(p.R3||0),J4:(p.R4||0),J5:-(p.R5||0),J6:-(p.R6||0),J7:-(p.R7||0)}; }
 function _canonToLeft(j) { return {L1:j.J1,L2:j.J2,L3:j.J3,L4:j.J4,L5:j.J5,L6:j.J6,L7:j.J7}; }
 function _canonToRight(j){ return {R1:-j.J1,R2:-j.J2,R3:-j.J3,R4:j.J4,R5:-j.J5,R6:-j.J6,R7:-j.J7}; }
@@ -1901,12 +1901,13 @@ function renderModList(side) {
     card.className = 'mod-card' + (id === sel ? ' selected' : '');
     card.id = `mc-${side}-${id}`;
     const bw = Math.round(mod.activity * 12);
-    // source 레이블: 최초 출처 2개만 표시 (ⓛ=left 원본, ⓡ=right 반전)
-    const srcLabel = mod.sources.slice(0,2)
-      .map(s => s.replace(':L','ⓛ').replace(':R','ⓡ')).join(' ');
+    const _cv = side === 'L' ? _canonToLeft(mod.J) : _canonToRight(mod.J);
+    const _p  = side === 'L' ? 'L' : 'R';
+    const _f  = v => (v >= 0 ? '+' : '') + (v||0).toFixed(2);
+    const angLabel = [1,2,3,4,5,6,7].map(i => `${_p}${i}:${_f(_cv[_p+i])}`).join(' ');
     card.innerHTML =
       `<span class="mod-id">${id}</span>` +
-      `<span class="mod-src">${srcLabel}</span>` +
+      `<span class="mod-src">${angLabel}</span>` +
       `<span class="mod-act-bar" style="width:${bw}px"></span>` +
       `<span class="mod-act-num">${mod.activity}</span>`;
     card.onclick = () => {
@@ -1941,8 +1942,15 @@ function _updateCompPanel() {
   const rM = selectedRModule ? CANON_MODULE_DB[selectedRModule] : null;
   const lEl = document.getElementById('comp-l-val');
   const rEl = document.getElementById('comp-r-val');
-  if (lEl) lEl.textContent = lM ? `L:${selectedLModule}  (${lM.sources[0]}, lv.${lM.activity})` : '—';
-  if (rEl) rEl.textContent = rM ? `R:${selectedRModule}  (${rM.sources[0]}, lv.${rM.activity})` : '—';
+  const _fv = v => (v >= 0 ? '+' : '') + (v||0).toFixed(2);
+  if (lEl) {
+    if (lM) { const r = _canonToLeft(lM.J);  lEl.textContent = `L:${selectedLModule}  ` + [1,2,3,4,5,6,7].map(i=>`L${i}:${_fv(r['L'+i])}`).join(' '); }
+    else lEl.textContent = '—';
+  }
+  if (rEl) {
+    if (rM) { const r = _canonToRight(rM.J); rEl.textContent = `R:${selectedRModule}  ` + [1,2,3,4,5,6,7].map(i=>`R${i}:${_fv(r['R'+i])}`).join(' '); }
+    else rEl.textContent = '—';
+  }
 }
 
 function renderModulePanel() {
